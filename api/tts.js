@@ -1,13 +1,15 @@
-﻿import crypto from "node:crypto";
+import crypto from "node:crypto";
 import {
+  CURATED_VOICES,
   DEFAULT_VOICE_ID,
   SPEED_MAX,
   SPEED_MIN,
 } from "./_config.js";
 
-const HF_TTS_URL =
-  process.env.HF_TTS_URL || "https://router.huggingface.co/hf-inference/models/hexgrad/Kokoro-82M";
-const MAX_TEXT_CHARS = Number(process.env.HF_MAX_TEXT_CHARS || 800);
+const VALID_VOICE_IDS = new Set(CURATED_VOICES.map((v) => v.id));
+
+const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
+const MAX_TEXT_CHARS = Number(process.env.MAX_TEXT_CHARS || 4096);
 const CACHE_TTL_MS = Number(process.env.TTS_CACHE_TTL_MS || 7 * 24 * 60 * 60 * 1000);
 const CACHE_MAX_ENTRIES = Number(process.env.TTS_CACHE_MAX_ENTRIES || 500);
 
@@ -60,9 +62,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const HF_API_KEY = process.env.HF_API_KEY || "";
-  if (!HF_API_KEY) {
-    return res.status(500).json({ error: "HF_API_KEY is not set" });
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+  if (!OPENAI_API_KEY) {
+    return res.status(500).json({ error: "OPENAI_API_KEY is not set" });
   }
 
   const body = parseJsonBody(req) || {};
@@ -74,7 +76,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `text exceeds ${MAX_TEXT_CHARS} characters` });
   }
 
-  const voice = typeof body.voice === "string" ? body.voice : DEFAULT_VOICE_ID;
+  const requestedVoice = typeof body.voice === "string" ? body.voice : DEFAULT_VOICE_ID;
+  const voice = VALID_VOICE_IDS.has(requestedVoice) ? requestedVoice : DEFAULT_VOICE_ID;
   const speed = clamp(Number(body.speed), SPEED_MIN, SPEED_MAX);
 
   const cacheKey = makeCacheKey(text, voice, speed);
@@ -86,27 +89,29 @@ export default async function handler(req, res) {
   }
 
   const payload = {
-    text_inputs: text,
-    parameters: { voice, speed },
+    model: "tts-1",
+    input: text,
+    voice: voice,
+    speed: speed,
+    response_format: "mp3",
   };
 
-  const hfRes = await fetch(HF_TTS_URL, {
+  const openaiRes = await fetch(OPENAI_TTS_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${HF_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
-      Accept: "audio/wav",
     },
     body: JSON.stringify(payload),
   });
 
-  if (!hfRes.ok) {
-    const detail = await hfRes.text();
-    return res.status(hfRes.status).json({ error: "HF request failed", detail: detail.slice(0, 800) });
+  if (!openaiRes.ok) {
+    const detail = await openaiRes.text();
+    return res.status(openaiRes.status).json({ error: "OpenAI request failed", detail: detail.slice(0, 800) });
   }
 
-  const contentType = hfRes.headers.get("content-type") || "audio/wav";
-  const arrayBuffer = await hfRes.arrayBuffer();
+  const contentType = openaiRes.headers.get("content-type") || "audio/mpeg";
+  const arrayBuffer = await openaiRes.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
   setCache(cacheKey, { buffer, contentType, expiresAt: Date.now() + CACHE_TTL_MS });

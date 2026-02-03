@@ -138,7 +138,7 @@ export default function App() {
         if (cancelled) return;
         setVoiceOptions([]);
         setTtsMode("fallback");
-        setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+        setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
       }
     }
     loadVoices();
@@ -263,7 +263,7 @@ export default function App() {
         await getTtsBlob(text, voice, speed);
       } catch {
         setTtsMode("fallback");
-        setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+        setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 40));
@@ -292,7 +292,7 @@ export default function App() {
           return;
         } catch {
           setTtsMode("fallback");
-          setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+          setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
         }
       }
       if (canBrowserSpeak) {
@@ -442,7 +442,7 @@ export default function App() {
         ? "Ready"
         : "Paused";
   const speechStatusText =
-    ttsMode === "kokoro" ? "Kokoro online" : canBrowserSpeak ? "Browser fallback" : "Speech unavailable";
+    ttsMode === "kokoro" ? "OpenAI TTS" : canBrowserSpeak ? "Browser fallback" : "Speech unavailable";
   const speechAvailable = ttsMode === "kokoro" || canBrowserSpeak;
 
   return (
