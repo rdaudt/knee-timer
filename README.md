@@ -1,5 +1,11 @@
 # React + TypeScript + Vite
 
+## Kokoro TTS (local dev)
+
+1) Copy `.env.example` to `.env` and set `HF_API_KEY`.
+2) Start the TTS server: `npm run dev:server`
+3) Start the client: `npm run dev`
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

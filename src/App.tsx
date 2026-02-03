@@ -1,4 +1,4 @@
-// Motivational 30-Second Timer (Knee Rehab)
+﻿// Motivational 30-Second Timer (Knee Rehab)
 // ---------------------------------------------------------------
 // Features:
 // - Single timer at a time
@@ -9,147 +9,44 @@
 // - Milestone callouts at 25%, 50%, 75%, 90%
 // ---------------------------------------------------------------
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  DEFAULT_MINUTES,
+  buildCongratsLine,
+  buildMotivationLine,
+  buildPrefetchLines,
+  buildStartLine,
+  clampFloat,
+  clampInt,
+  computeMilestones,
+  formatMMSS,
+  padShortUtterance,
+  pickMotivation,
+  type PrefetchLine,
+} from "./ttsUtils";
 
-const DEFAULT_MINUTES = 10;
-
-type SpeakOpts = {
-  rate?: number;
-  pitch?: number;
-  volume?: number;
-  voiceURI?: string;
+type VoiceOption = {
+  id: string;
+  label: string;
+  lang: string;
+  gender: "F" | "M";
+  grade: string;
 };
 
-function clampInt(n: number, min: number, max: number) {
-  const x = Number.isFinite(n) ? Math.trunc(n) : min;
-  return Math.max(min, Math.min(max, x));
-}
+type SpeakOpts = {
+  speed?: number;
+  volume?: number;
+};
 
-function formatMMSS(totalSeconds: number) {
-  const s = Math.max(0, Math.trunc(totalSeconds));
-  const mm = String(Math.floor(s / 60)).padStart(2, "0");
-  const ss = String(s % 60).padStart(2, "0");
-  return `${mm}:${ss}`;
-}
+type TtsMode = "kokoro" | "fallback";
 
-// 100-item motivation bank
-const MOTIVATION_BANK: string[] = [
-  "Every rep you do now brings your knee closer to full freedom.",
-  "This pain has purpose — it’s clearing the path to walking with confidence again.",
-  "Your future mobility is being built in this exact moment.",
-  "Each stretch is unlocking a little more of the life you want back.",
-  "Stay with it — this is how your knee regains trust in you.",
-  "You’re rebuilding strength that will carry you for decades.",
-  "A few seconds of discomfort for a lifetime of movement — keep going.",
-  "Your knee is relearning, and you’re leading the way.",
-  "This work restores stability, step by step.",
-  "Your future walks, hikes, and stairs are being made possible right now.",
-  "Healing requires effort — and you’re giving it.",
-  "Every stretch improves tomorrow’s mobility.",
-  "Keep going — the knee needs this to fully recover.",
-  "This pain is temporary; the strength you gain is not.",
-  "Imagine your future self moving freely — you’re building that body now.",
-  "Your knee is responding, even if you can’t feel it yet.",
-  "Slow progress is still progress — and it’s adding up.",
-  "You’re reclaiming your independence with every second.",
-  "These reps are laying the foundation for pain‑free movement.",
-  "Flexibility returns with consistency — and you’re showing up.",
-  "Keep steady — you're teaching your knee how to bend confidently again.",
-  "This is how you get back to doing everything you love.",
-  "Your persistence is rewiring strength into your joint.",
-  "Every motion helps reduce stiffness for the rest of the day.",
-  "You're helping your knee trust movement again.",
-  "Future walks, future steps, future adventures — all fueled by this work.",
-  "Stay consistent — your knee heals through repetition.",
-  "Think long-term: this is how you protect your mobility for life.",
-  "Your knee is unlocking more range with every session.",
-  "Painful doesn’t mean harmful — this is constructive effort.",
-  "This minute strengthens your ability to stand tall and move strong.",
-  "You’re rebuilding the foundation for an active future.",
-  "Your knee appreciates every bit of movement you give it.",
-  "These controlled motions restore confidence in your joint.",
-  "Keep going — you’re creating a knee that supports your goals.",
-  "Every stretch gently reclaims mobility.",
-  "Your future self will look back and be grateful you stayed with this.",
-  "This rehab is your bridge to full strength.",
-  "Consistency is your superpower — you're using it well.",
-  "This work is reawakening muscles that protect your knee.",
-  "You’re doing what’s necessary, not what’s easy.",
-  "Each rep strengthens the muscles that stabilize your knee.",
-  "You're proving your resilience with every second.",
-  "Rehab bends now mean easier bending later — stay with it.",
-  "You’re creating lasting strength, one slow rep at a time.",
-  "This effort adds years of active living to your future.",
-  "Every controlled motion fights stiffness.",
-  "Your commitment today gives you freedom tomorrow.",
-  "This session matters — it’s a building block of recovery.",
-  "You’re enhancing the balance and stability around your knee.",
-  "Your knee is healing through your persistence.",
-  "These movements tell your body it's safe to move again.",
-  "The road to full recovery is paved with moments like this.",
-  "Slow and steady makes the knee stronger than rushing ever could.",
-  "You're restoring normal movement patterns — keep guiding your knee.",
-  "This is how you break through mobility plateaus.",
-  "Every second strengthens the connection between your mind and your knee.",
-  "You’re reclaiming your full stride.",
-  "Your knee is learning its full range again — you’re helping it remember.",
-  "These reps make the difficult days easier.",
-  "Your consistency is what transforms recovery.",
-  "You're laying the groundwork for pain-free steps.",
-  "The effort you put in now will echo through the rest of your life.",
-  "Keep breathing — motion plus oxygen equals healing.",
-  "Your knee will reward this moment of effort.",
-  "This is the work that ensures you walk stronger next month.",
-  "Push just enough — progress is built gently.",
-  "Every controlled movement helps loosen the scar tissue.",
-  "You're rebuilding coordination, bit by bit.",
-  "This stretch unlocks a little more freedom.",
-  "You're adding strength that supports every future step.",
-  "Keep at it — this is how you regain full function.",
-  "These seconds right now are part of your comeback story.",
-  "Your knee is capable — you’re helping it get there.",
-  "You’re doing the hard part that most people avoid.",
-  "This is strength training for a lifetime of movement.",
-  "Every rep is an investment in your future mobility.",
-  "Your body is healing — stay with it.",
-  "This moment of effort reduces future moments of pain.",
-  "Your knee is adapting more than you realize.",
-  "You’re getting stronger precisely where you need it.",
-  "Stay the course — healing takes patience and power.",
-  "You’re showing real courage by doing this.",
-  "Every motion increases the fluidity of your joint.",
-  "The more consistent you are, the smoother recovery becomes.",
-  "You’re teaching your knee to trust movement again.",
-  "This effort brings you closer to walking without hesitation.",
-  "Your knee is grateful for this moment.",
-  "Recovery isn’t linear — but your commitment is.",
-  "This work is restoring your natural strength.",
-  "You’re rebuilding the ability to live actively and fully.",
-  "Every second pushes stiffness further away.",
-  "You’re doing the essential work that leads to a full recovery.",
-  "You’re giving yourself the gift of future mobility.",
-  "This session matters more than you know.",
-  "Strong knees are built with moments like this.",
-  "Your future freedom of movement starts right here.",
-  "Keep going — future you is cheering for you.",
-  // extra 10 to ensure >= 100 even if you remove some later
-  "Each controlled breath helps you stay steady through the tough parts.",
-  "This is how you earn back comfort on stairs and slopes.",
-  "You’re restoring range of motion that makes daily life easier.",
-  "Today’s effort supports tomorrow’s stability.",
-  "Your knee is getting smoother with repetition — keep guiding it.",
-  "You’re building the strength that protects your joint long-term.",
-  "This session is an investment in a more active future.",
-  "The hard part is showing up — and you’re doing it.",
-  "You’re training for the life you want to live again.",
-  "You’re closer than you think — keep going.",
-];
+const DEFAULT_VOICE_ID = "af_heart";
+const SPEED_DEFAULT = 1;
+const SPEED_MIN = 0.8;
+const SPEED_MAX = 1.2;
+const SPEED_STEP = 0.05;
 
-function pickMotivation(i: number) {
-  return MOTIVATION_BANK[i % MOTIVATION_BANK.length];
-}
-
-function speak(text: string, opts: SpeakOpts = {}) {
+function speakBrowser(text: string, opts: SpeakOpts = {}) {
   if (typeof window === "undefined") return;
   const synth = window.speechSynthesis;
   if (!synth || typeof window.SpeechSynthesisUtterance === "undefined") return;
@@ -158,66 +55,12 @@ function speak(text: string, opts: SpeakOpts = {}) {
   synth.cancel();
 
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = opts.rate ?? 1;
-  u.pitch = opts.pitch ?? 1;
+  u.rate = opts.speed ?? 1;
   u.volume = opts.volume ?? 1;
 
-  if (opts.voiceURI) {
-    const voices = synth.getVoices?.() || [];
-    const v = voices.find((x) => x.voiceURI === opts.voiceURI);
-    if (v) u.voice = v;
-  }
-
-  synth.speak(u);
-}
-
-function buildStartLine(name: string, activity: string) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` for ${act}` : "";
-  return n ? `Alright ${n}${actPart}. Let’s start. You’ve got this.` : `Alright${actPart}. Let’s start. You’ve got this.`;
-}
-
-function buildCongratsLine(name: string, activity: string) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` with ${act}` : "";
-  return n ? `Time. Amazing work, ${n}. You finished${actPart}.` : `Time. Amazing work. You finished${actPart}.`;
-}
-
-function buildMotivationLine(base: string, activity: string) {
-  const act = (activity || "").trim();
-  const actBit = act ? ` Keep going with ${act}.` : "";
-  // Name intentionally excluded (spoken once at start).
-  return `${base}${actBit}`;
-}
-
-type Milestone = { key: string; elapsed: number; text: string };
-
-function computeMilestones(totalSeconds: number): Milestone[] {
-  const t = Math.max(1, Math.trunc(totalSeconds));
-  return [
-    {
-      key: "m25",
-      elapsed: Math.round(t * 0.25),
-      text: "25 percent done. Your knee is warming up and responding — great pace.",
-    },
-    {
-      key: "m50",
-      elapsed: Math.round(t * 0.5),
-      text: "Halfway there. This is where real recovery happens — stay steady.",
-    },
-    {
-      key: "m75",
-      elapsed: Math.round(t * 0.75),
-      text: "Three quarters done. You’re pushing through the toughest part — incredible work.",
-    },
-    {
-      key: "m90",
-      elapsed: Math.round(t * 0.9),
-      text: "Ninety percent done. This final stretch is where your knee gains the most — finish strong.",
-    },
-  ];
+  // Warm voices list and defer to avoid cancel/speak races in some browsers.
+  synth.getVoices?.();
+  window.setTimeout(() => synth.speak(u), 0);
 }
 
 export default function App() {
@@ -233,13 +76,23 @@ export default function App() {
 
   // Speech settings
   const [speechEnabled, setSpeechEnabled] = useState<boolean>(true);
-  const [speechRate, setSpeechRate] = useState<number>(1);
-  const [speechPitch, setSpeechPitch] = useState<number>(1);
+  const [speechSpeed, setSpeechSpeed] = useState<number>(SPEED_DEFAULT);
   const [speechVolume, setSpeechVolume] = useState<number>(1);
-  const [voiceURI, setVoiceURI] = useState<string>("");
+  const [voiceId, setVoiceId] = useState<string>(DEFAULT_VOICE_ID);
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
+  const [speedRange, setSpeedRange] = useState({ min: SPEED_MIN, max: SPEED_MAX, step: SPEED_STEP });
+  const [ttsMode, setTtsMode] = useState<TtsMode>("kokoro");
+  const [ttsNote, setTtsNote] = useState<string>("");
 
   const intervalRef = useRef<number | null>(null);
   const lastSpokenRef = useRef<number | string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const ttsCacheRef = useRef<Map<string, Blob>>(new Map());
+  const ttsInFlightRef = useRef<Map<string, Promise<Blob>>>(new Map());
+  const prefetchIdRef = useRef<number>(0);
+  const speechEnabledRef = useRef<boolean>(speechEnabled);
+  const ttsModeRef = useRef<TtsMode>(ttsMode);
 
   const totalSeconds = useMemo(() => durationMinutes * 60, [durationMinutes]);
   const progress = useMemo(() => {
@@ -249,27 +102,204 @@ export default function App() {
 
   const milestones = useMemo(() => computeMilestones(totalSeconds), [totalSeconds]);
 
-  const canSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
+  const canBrowserSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
 
   useEffect(() => {
-    if (!canSpeak) return;
-    const onVoicesChanged = () => {
-      // no-op state set to refresh voice list
-      setVoiceURI((v) => v);
+    let cancelled = false;
+    async function loadVoices() {
+      try {
+        const res = await fetch("/api/voices");
+        if (!res.ok) throw new Error(`voice load failed: ${res.status}`);
+        const data = (await res.json()) as {
+          voices: VoiceOption[];
+          defaultVoiceId: string;
+          speed: { min: number; max: number; step: number; recommended: number };
+        };
+        if (cancelled) return;
+        const voices = Array.isArray(data.voices) ? data.voices : [];
+        setVoiceOptions(voices);
+        if (data.speed) {
+          const min = data.speed.min ?? SPEED_MIN;
+          const max = data.speed.max ?? SPEED_MAX;
+          const step = data.speed.step ?? SPEED_STEP;
+          setSpeedRange({ min, max, step });
+          if (typeof data.speed.recommended === "number") {
+            setSpeechSpeed(clampFloat(data.speed.recommended, min, max));
+          }
+        }
+        const nextVoice =
+          typeof data.defaultVoiceId === "string" && data.defaultVoiceId
+            ? data.defaultVoiceId
+            : voices[0]?.id || DEFAULT_VOICE_ID;
+        setVoiceId((prev) => prev || nextVoice);
+        setTtsMode("kokoro");
+        setTtsNote("");
+      } catch {
+        if (cancelled) return;
+        setVoiceOptions([]);
+        setTtsMode("fallback");
+        setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+      }
+    }
+    loadVoices();
+    return () => {
+      cancelled = true;
     };
-    window.speechSynthesis.addEventListener?.("voiceschanged", onVoicesChanged);
-    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", onVoicesChanged);
-  }, [canSpeak]);
+  }, [canBrowserSpeak]);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current != null) window.clearInterval(intervalRef.current);
       intervalRef.current = null;
+      stopAudio();
     };
   }, []);
 
+  useEffect(() => {
+    if (!speechEnabled) stopSpeech();
+  }, [speechEnabled]);
+
+  useEffect(() => {
+    speechEnabledRef.current = speechEnabled;
+  }, [speechEnabled]);
+
+  useEffect(() => {
+    ttsModeRef.current = ttsMode;
+  }, [ttsMode]);
+
+  function stopAudio() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  }
+
+  function stopSpeech() {
+    stopAudio();
+    if (canBrowserSpeak) window.speechSynthesis?.cancel();
+  }
+
+  async function playBlob(blob: Blob) {
+    stopAudio();
+    const url = URL.createObjectURL(blob);
+    audioUrlRef.current = url;
+    const audio = new Audio(url);
+    audio.volume = clampFloat(speechVolume, 0, 1);
+    audioRef.current = audio;
+    audio.onended = () => {
+      if (audioRef.current === audio) audioRef.current = null;
+      if (audioUrlRef.current === url) {
+        URL.revokeObjectURL(url);
+        audioUrlRef.current = null;
+      }
+    };
+    audio.onerror = () => {
+      if (audioUrlRef.current === url) {
+        URL.revokeObjectURL(url);
+        audioUrlRef.current = null;
+      }
+    };
+    await audio.play();
+  }
+
+  function makeClientCacheKey(text: string, voice: string, speed: number) {
+    return `${voice}|${speed.toFixed(2)}|${text}`;
+  }
+
+  async function fetchTtsBlob(text: string, voice: string, speed: number) {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice, speed }),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(detail || `TTS failed (${res.status})`);
+    }
+    return await res.blob();
+  }
+
+  async function getTtsBlob(text: string, voice: string, speed: number) {
+    const key = makeClientCacheKey(text, voice, speed);
+    const cached = ttsCacheRef.current.get(key);
+    if (cached) return cached;
+    const inFlight = ttsInFlightRef.current.get(key);
+    if (inFlight) return await inFlight;
+
+    const request = fetchTtsBlob(text, voice, speed)
+      .then((blob) => {
+        ttsInFlightRef.current.delete(key);
+        ttsCacheRef.current.set(key, blob);
+        if (ttsCacheRef.current.size > 200) {
+          const firstKey = ttsCacheRef.current.keys().next().value;
+          if (firstKey) ttsCacheRef.current.delete(firstKey);
+        }
+        return blob;
+      })
+      .catch((err) => {
+        ttsInFlightRef.current.delete(key);
+        throw err;
+      });
+
+    ttsInFlightRef.current.set(key, request);
+    return await request;
+  }
+
+  function cancelPrefetch() {
+    prefetchIdRef.current += 1;
+  }
+
+  async function prefetchLines(lines: PrefetchLine[], voice: string, speed: number) {
+    const prefetchId = ++prefetchIdRef.current;
+    for (const line of lines) {
+      if (prefetchIdRef.current !== prefetchId) return;
+      if (!speechEnabledRef.current || ttsModeRef.current !== "kokoro") return;
+      const text = padShortUtterance(line.text);
+      try {
+        await getTtsBlob(text, voice, speed);
+      } catch {
+        setTtsMode("fallback");
+        setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+  }
+
+  async function speakKokoro(text: string) {
+    if (canBrowserSpeak) window.speechSynthesis?.cancel();
+    const padded = padShortUtterance(text);
+    const speed = clampFloat(speechSpeed, speedRange.min, speedRange.max);
+    const blob = await getTtsBlob(padded, voiceId, speed);
+    await playBlob(blob);
+  }
+
+  function speakFallback(text: string) {
+    const padded = padShortUtterance(text);
+    speakBrowser(padded, { speed: speechSpeed, volume: speechVolume });
+  }
+
   function speakWithSettings(text: string) {
-    speak(text, { rate: speechRate, pitch: speechPitch, volume: speechVolume, voiceURI });
+    if (!speechEnabled) return;
+    void (async () => {
+      if (ttsMode === "kokoro") {
+        try {
+          await speakKokoro(text);
+          return;
+        } catch {
+          setTtsMode("fallback");
+          setTtsNote(canBrowserSpeak ? "Kokoro unavailable; using browser voice." : "Speech unavailable in this browser.");
+        }
+      }
+      if (canBrowserSpeak) {
+        stopAudio();
+        speakFallback(text);
+      }
+    })();
   }
 
   function clearIntervalIfAny() {
@@ -314,6 +344,13 @@ export default function App() {
     setIsRunning(true);
 
     lastSpokenRef.current = null;
+    stopSpeech();
+    cancelPrefetch();
+
+    if (speechEnabled && ttsMode === "kokoro") {
+      const lines = buildPrefetchLines(startSeconds, activity, userName);
+      void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
+    }
 
     if (speechEnabled) {
       speakWithSettings(buildStartLine(userName, activity));
@@ -346,11 +383,17 @@ export default function App() {
   function pause() {
     setIsRunning(false);
     clearIntervalIfAny();
+    stopSpeech();
   }
 
   function resume() {
     if (secondsLeft <= 0) return;
     setIsRunning(true);
+
+    if (speechEnabled && ttsMode === "kokoro") {
+      const lines = buildPrefetchLines(totalSeconds, activity, userName);
+      void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
+    }
 
     announce(secondsLeft);
 
@@ -380,6 +423,7 @@ export default function App() {
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);
     lastSpokenRef.current = null;
+    cancelPrefetch();
   }
 
   function stopAndClear() {
@@ -387,15 +431,19 @@ export default function App() {
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);
     lastSpokenRef.current = null;
+    cancelPrefetch();
   }
 
   const statusText = isFinished
-    ? "Session complete — nice work."
+    ? "Session complete - nice work."
     : isRunning
       ? "Running"
       : secondsLeft === totalSeconds
         ? "Ready"
         : "Paused";
+  const speechStatusText =
+    ttsMode === "kokoro" ? "Kokoro online" : canBrowserSpeak ? "Browser fallback" : "Speech unavailable";
+  const speechAvailable = ttsMode === "kokoro" || canBrowserSpeak;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex items-center justify-center p-4">
@@ -427,7 +475,7 @@ export default function App() {
               </label>
 
               <label>
-                <div className="text-sm text-zinc-300 mb-1">What you’re doing</div>
+                <div className="text-sm text-zinc-300 mb-1">What you're doing</div>
                 <input
                   type="text"
                   placeholder="e.g., physiotherapy"
@@ -441,7 +489,7 @@ export default function App() {
 
             <div className="mt-5 flex items-end gap-3 flex-wrap">
               <label className="flex-1 min-w-[180px]">
-                <div className="text-sm text-zinc-300 mb-1">Minutes (1–180)</div>
+                <div className="text-sm text-zinc-300 mb-1">Minutes (1-180)</div>
                 <input
                   type="number"
                   min={1}
@@ -510,7 +558,7 @@ export default function App() {
                 <div className="text-6xl font-bold tabular-nums tracking-tight">{formatMMSS(secondsLeft)}</div>
                 <div className="mt-2 text-zinc-300">
                   {secondsLeft > 0
-                    ? "You’re rebuilding your future mobility — stay steady."
+                    ? "You're rebuilding your future mobility - stay steady."
                     : "Done. Be proud of showing up."}
                 </div>
               </div>
@@ -521,9 +569,8 @@ export default function App() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <div className="text-sm font-semibold">Voice coach</div>
-                <div className="text-sm text-zinc-400">
-                  {canSpeak ? "Speech is available in this browser." : "Speech not available here."}
-                </div>
+                <div className="text-sm text-zinc-400">{speechStatusText}</div>
+                {ttsNote ? <div className="text-xs text-amber-300 mt-1">{ttsNote}</div> : null}
               </div>
               <label className="flex items-center gap-2">
                 <input
@@ -531,7 +578,7 @@ export default function App() {
                   className="h-4 w-4"
                   checked={speechEnabled}
                   onChange={(e) => setSpeechEnabled(e.target.checked)}
-                  disabled={!canSpeak}
+                  disabled={!speechAvailable}
                 />
                 <span className="text-sm text-zinc-200">Enable spoken messages</span>
               </label>
@@ -542,44 +589,38 @@ export default function App() {
                 <div className="text-sm text-zinc-300 mb-1">Voice</div>
                 <select
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                  value={voiceURI}
-                  onChange={(e) => setVoiceURI(e.target.value)}
-                  disabled={!canSpeak}
+                  value={voiceId}
+                  onChange={(e) => setVoiceId(e.target.value)}
+                  disabled={ttsMode !== "kokoro" || voiceOptions.length === 0}
                 >
-                  <option value="">Default</option>
-                  {(window?.speechSynthesis?.getVoices?.() || []).map((v) => (
-                    <option key={v.voiceURI} value={v.voiceURI}>
-                      {v.name} ({v.lang})
-                    </option>
-                  ))}
+                  {voiceOptions.length === 0 ? (
+                    <option value={voiceId}>Loading voices...</option>
+                  ) : (
+                    voiceOptions.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label} ({v.lang} {v.gender}, {v.grade})
+                      </option>
+                    ))
+                  )}
                 </select>
               </label>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <label>
-                  <div className="text-sm text-zinc-300 mb-1">Rate</div>
+                  <div className="text-sm text-zinc-300 mb-1">
+                    Speed ({speedRange.min.toFixed(1)}-{speedRange.max.toFixed(1)})
+                  </div>
                   <input
                     type="number"
-                    min={0.5}
-                    max={1.5}
-                    step={0.1}
+                    min={speedRange.min}
+                    max={speedRange.max}
+                    step={speedRange.step}
                     className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                    value={speechRate}
-                    onChange={(e) => setSpeechRate(Number(e.target.value))}
-                    disabled={!canSpeak}
-                  />
-                </label>
-                <label>
-                  <div className="text-sm text-zinc-300 mb-1">Pitch</div>
-                  <input
-                    type="number"
-                    min={0.8}
-                    max={1.2}
-                    step={0.1}
-                    className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                    value={speechPitch}
-                    onChange={(e) => setSpeechPitch(Number(e.target.value))}
-                    disabled={!canSpeak}
+                    value={speechSpeed}
+                    onChange={(e) =>
+                      setSpeechSpeed(clampFloat(Number(e.target.value), speedRange.min, speedRange.max))
+                    }
+                    disabled={!speechAvailable}
                   />
                 </label>
                 <label>
@@ -592,7 +633,7 @@ export default function App() {
                     className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
                     value={speechVolume}
                     onChange={(e) => setSpeechVolume(Number(e.target.value))}
-                    disabled={!canSpeak}
+                    disabled={!speechAvailable}
                   />
                 </label>
               </div>
@@ -602,20 +643,20 @@ export default function App() {
               <button
                 className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition"
                 onClick={() => {
-                  speakWithSettings(buildMotivationLine("Preview: You’re doing great. Keep going.", activity));
+                  speakWithSettings(buildMotivationLine("Preview: You're doing great. Keep going.", activity));
                 }}
-                disabled={!canSpeak}
+                disabled={!speechAvailable || !speechEnabled}
               >
                 Test voice
               </button>
-              <div className="text-sm text-zinc-400">Tip: If you don’t hear anything, click once and try again.</div>
+              <div className="text-sm text-zinc-400">Tip: If you don't hear anything, click once and try again.</div>
             </div>
           </div>
         </div>
 
         <div className="mt-4 text-xs text-zinc-500 leading-relaxed">
           <p>
-            If your session is extremely painful or worsening, follow your clinician’s guidance. This timer is for
+            If your session is extremely painful or worsening, follow your clinician's guidance. This timer is for
             encouragement, not medical advice.
           </p>
         </div>
@@ -656,3 +697,9 @@ export default function App() {
     assert(m.elapsed >= 0 && m.elapsed <= 37, `milestone within bounds: ${m.key}`);
   }
 })();
+
+
+
+
+
+
