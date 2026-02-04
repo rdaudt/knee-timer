@@ -100,6 +100,15 @@ export default function App() {
 
   const milestones = useMemo(() => computeMilestones(totalSeconds), [totalSeconds]);
 
+  // Refs for values that need to be current inside interval callbacks (avoids stale closure)
+  const totalSecondsRef = useRef<number>(totalSeconds);
+  const milestonesRef = useRef<ReturnType<typeof computeMilestones>>(milestones);
+
+  useEffect(() => {
+    totalSecondsRef.current = totalSeconds;
+    milestonesRef.current = milestones;
+  }, [totalSeconds, milestones]);
+
   useEffect(() => {
     let cancelled = false;
     async function loadVoices() {
@@ -383,10 +392,13 @@ export default function App() {
     // Never speak at 0:00 (reserved for congratulations)
     if (currentSecondsLeft === 0) return;
 
-    const elapsedSeconds = totalSeconds - currentSecondsLeft;
+    // Use refs to get current values (avoids stale closure in interval callbacks)
+    const ts = totalSecondsRef.current;
+    const ms = milestonesRef.current;
+    const elapsedSeconds = ts - currentSecondsLeft;
 
     // Milestones take precedence
-    for (const m of milestones) {
+    for (const m of ms) {
       if (elapsedSeconds === m.elapsed && lastSpokenRef.current !== m.key) {
         lastSpokenRef.current = m.key;
         speakWithSettings(m.text);
@@ -407,6 +419,10 @@ export default function App() {
   function start() {
     const mins = clampInt(parseInt(minutesInput, 10), 1, 180);
     const startSeconds = mins * 60;
+
+    // Update refs synchronously BEFORE any announce calls (avoids stale closure)
+    totalSecondsRef.current = startSeconds;
+    milestonesRef.current = computeMilestones(startSeconds);
 
     setDurationMinutes(mins);
     setSecondsLeft(startSeconds);
