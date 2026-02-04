@@ -1,78 +1,73 @@
-# React + TypeScript + Vite
+# Knee Timer
 
-## Kokoro TTS (local dev with Vercel)
+A motivational rehabilitation timer web app for knee recovery exercises. Provides encouraging audio coaching every 30 seconds during timed sessions, with milestone callouts and background music to keep you moving through your physio.
 
-1) Copy `.env.example` to `.env.local` and set `HF_API_KEY`.
-2) Start everything (frontend + serverless API): `npm run dev:vercel`
+**Live:** https://knee-timer.vercel.app
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Features
 
-Currently, two official plugins are available:
+- **Timed sessions** from 1-180 minutes
+- **Voice coaching** with OpenAI TTS - motivational messages every 30 seconds
+- **Milestone callouts** at 25%, 50%, 75%, and 90% completion
+- **Background music** that automatically ducks during voice messages
+- **Personalization** - set your name and activity for custom encouragement
+- **Multiple voices** - choose from 5 OpenAI voices (Echo, Alloy, Fable, Onyx, Shimmer)
+- **Adjustable speed and volume** for voice coaching
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting Started
 
-## React Compiler
+### Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 18+
+- OpenAI API key
 
-## Expanding the ESLint configuration
+### Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/rdaudt/knee-timer.git
+cd knee-timer
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Configuration
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Copy `.env.example` to `.env.local` and add your OpenAI API key:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+OPENAI_API_KEY=sk-...
+```
+
+### Development
+
+```bash
+npm run dev:vercel    # Frontend + Vercel serverless API
+```
+
+Open http://localhost:3000
+
+### Production Build
+
+```bash
+npm run build         # TypeScript compile + Vite build
+vercel --prod         # Deploy to Vercel
+```
+
+## Tech Stack
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
+- **Backend:** Vercel serverless functions
+- **TTS:** OpenAI TTS API (tts-1 model)
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev:vercel` | Local dev with API |
+| `npm run dev` | Frontend only |
+| `npm run build` | Production build |
+| `npm run test` | Run tests |
+| `npm run lint` | ESLint |
+
+## License
+
+MIT
