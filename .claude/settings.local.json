@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nReplace Hugging Face Kokoro TTS with OpenAI TTS API\n\n- Switch from HF Inference API to OpenAI /v1/audio/speech endpoint\n- Update voice options to OpenAI voices \\(Nova, Echo, Alloy, etc.\\)\n- Expand speed range from 0.8-1.2 to 0.25-4.0 \\(OpenAI supported range\\)\n- Add voice ID validation with fallback to default voice\n- Update environment variable from HF_API_KEY to OPENAI_API_KEY\n- Update frontend messages from \"Kokoro\" to \"OpenAI TTS\"\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)",
+      "Bash(vercel:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:*)",
+      "Bash(curl:*)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:vercel:*)",
+      "Bash(timeout:*)"
+    ]
+  }
+}
