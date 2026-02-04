@@ -44,6 +44,19 @@ const SPEED_STEP = 0.05;
 const DUCK_VOLUME = 0.05;
 const NORMAL_VOLUME = 0.4;
 
+// iOS requires audio elements to be created and "unlocked" during user gesture for full volume playback.
+// We create a single reusable element and keep it alive.
+let sharedTtsAudio: HTMLAudioElement | null = null;
+
+function getSharedTtsAudio(): HTMLAudioElement {
+  if (!sharedTtsAudio) {
+    sharedTtsAudio = new Audio();
+    // Prevent iOS from treating this as ambient/background audio
+    sharedTtsAudio.setAttribute("playsinline", "true");
+  }
+  return sharedTtsAudio;
+}
+
 export default function App() {
   const [minutesInput, setMinutesInput] = useState<string>(String(DEFAULT_MINUTES));
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_MINUTES);
@@ -75,6 +88,9 @@ export default function App() {
   const speechEnabledRef = useRef<boolean>(speechEnabled);
   const ttsModeRef = useRef<TtsMode>(ttsMode);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Web Audio API for iOS-compatible volume control
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const bgGainNodeRef = useRef<GainNode | null>(null);
 
   const totalSeconds = useMemo(() => durationMinutes * 60, [durationMinutes]);
   const progress = useMemo(() => {
@@ -151,6 +167,7 @@ export default function App() {
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
+      // Don't destroy the shared audio element, just clear the reference
       audioRef.current = null;
     }
     if (audioUrlRef.current) {
@@ -164,11 +181,39 @@ export default function App() {
   }
 
   function startBackgroundMusic() {
+    // Use Web Audio API for iOS-compatible volume control
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) {
+      // Fallback for browsers without Web Audio API
+      const audio = new Audio(backMusicUrl);
+      audio.loop = true;
+      audio.volume = NORMAL_VOLUME;
+      audio.play();
+      backgroundAudioRef.current = audio;
+      return;
+    }
+
+    const ctx = new AudioContextClass();
+    audioContextRef.current = ctx;
+
     const audio = new Audio(backMusicUrl);
     audio.loop = true;
-    audio.volume = NORMAL_VOLUME;
-    audio.play();
+    audio.crossOrigin = "anonymous";
     backgroundAudioRef.current = audio;
+
+    // Connect through Web Audio API gain node
+    const source = ctx.createMediaElementSource(audio);
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = NORMAL_VOLUME;
+    bgGainNodeRef.current = gainNode;
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Resume context (required for iOS after user gesture)
+    ctx.resume().then(() => {
+      audio.play();
+    });
   }
 
   function stopBackgroundMusic() {
@@ -177,16 +222,33 @@ export default function App() {
       backgroundAudioRef.current.currentTime = 0;
       backgroundAudioRef.current = null;
     }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    bgGainNodeRef.current = null;
   }
 
   function duckBackgroundMusic() {
-    if (backgroundAudioRef.current) {
+    const gain = bgGainNodeRef.current;
+    if (gain && audioContextRef.current) {
+      // Use Web Audio API's built-in ramping for smooth transitions
+      gain.gain.cancelScheduledValues(audioContextRef.current.currentTime);
+      gain.gain.setValueAtTime(gain.gain.value, audioContextRef.current.currentTime);
+      gain.gain.linearRampToValueAtTime(DUCK_VOLUME, audioContextRef.current.currentTime + 0.1);
+    } else if (backgroundAudioRef.current) {
+      // Fallback for non-Web Audio path
       backgroundAudioRef.current.volume = DUCK_VOLUME;
     }
   }
 
   function restoreBackgroundMusic() {
-    if (backgroundAudioRef.current) {
+    const gain = bgGainNodeRef.current;
+    if (gain && audioContextRef.current) {
+      gain.gain.cancelScheduledValues(audioContextRef.current.currentTime);
+      gain.gain.setValueAtTime(gain.gain.value, audioContextRef.current.currentTime);
+      gain.gain.linearRampToValueAtTime(NORMAL_VOLUME, audioContextRef.current.currentTime + 0.15);
+    } else if (backgroundAudioRef.current) {
       backgroundAudioRef.current.volume = NORMAL_VOLUME;
     }
   }
@@ -195,7 +257,9 @@ export default function App() {
     stopAudio();
     const url = URL.createObjectURL(blob);
     audioUrlRef.current = url;
-    const audio = new Audio(url);
+    // Reuse shared audio element for iOS compatibility (must be created during user gesture)
+    const audio = getSharedTtsAudio();
+    audio.src = url;
     audio.volume = clampFloat(speechVolume, 0, 1);
     audioRef.current = audio;
     audio.onended = () => {
@@ -213,7 +277,9 @@ export default function App() {
       }
       restoreBackgroundMusic();
     };
+    // Duck first, then wait for the ramp to complete before playing TTS
     duckBackgroundMusic();
+    await new Promise((r) => setTimeout(r, 120));
     await audio.play();
   }
 
@@ -273,9 +339,8 @@ export default function App() {
       try {
         await getTtsBlob(text, voice, speed);
       } catch {
-        setSpeechEnabled(false);
-        setTtsNote("OpenAI TTS unavailable.");
-        return;
+        // Prefetch errors are not fatal - audio will be fetched on-demand
+        // Don't disable TTS for transient network issues
       }
       await new Promise((resolve) => setTimeout(resolve, 40));
     }
@@ -288,14 +353,21 @@ export default function App() {
     await playBlob(blob);
   }
 
+  const ttsFailCountRef = useRef<number>(0);
+
   function speakWithSettings(text: string) {
     if (!speechEnabled) return;
     void (async () => {
       try {
         await speakKokoro(text);
+        ttsFailCountRef.current = 0; // Reset on success
       } catch {
-        setSpeechEnabled(false);
-        setTtsNote("OpenAI TTS unavailable.");
+        ttsFailCountRef.current += 1;
+        // Only disable TTS after 3 consecutive failures
+        if (ttsFailCountRef.current >= 3) {
+          setSpeechEnabled(false);
+          setTtsNote("OpenAI TTS unavailable.");
+        }
       }
     })();
   }
@@ -396,7 +468,14 @@ export default function App() {
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
-    backgroundAudioRef.current?.play();
+    // Resume AudioContext for iOS, then play audio
+    if (audioContextRef.current) {
+      audioContextRef.current.resume().then(() => {
+        backgroundAudioRef.current?.play();
+      });
+    } else {
+      backgroundAudioRef.current?.play();
+    }
 
     announce(secondsLeft);
 
