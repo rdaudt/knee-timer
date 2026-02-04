@@ -24,6 +24,7 @@ import {
   pickMotivation,
   type PrefetchLine,
 } from "./ttsUtils";
+import backMusicUrl from "./assets/backmusic.mp3";
 
 type VoiceOption = {
   id: string;
@@ -33,35 +34,15 @@ type VoiceOption = {
   grade: string;
 };
 
-type SpeakOpts = {
-  speed?: number;
-  volume?: number;
-};
-
-type TtsMode = "kokoro" | "fallback";
+type TtsMode = "kokoro";
 
 const DEFAULT_VOICE_ID = "af_heart";
 const SPEED_DEFAULT = 1;
 const SPEED_MIN = 0.8;
 const SPEED_MAX = 1.2;
 const SPEED_STEP = 0.05;
-
-function speakBrowser(text: string, opts: SpeakOpts = {}) {
-  if (typeof window === "undefined") return;
-  const synth = window.speechSynthesis;
-  if (!synth || typeof window.SpeechSynthesisUtterance === "undefined") return;
-
-  // Avoid queues
-  synth.cancel();
-
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = opts.speed ?? 1;
-  u.volume = opts.volume ?? 1;
-
-  // Warm voices list and defer to avoid cancel/speak races in some browsers.
-  synth.getVoices?.();
-  window.setTimeout(() => synth.speak(u), 0);
-}
+const DUCK_VOLUME = 0.05;
+const NORMAL_VOLUME = 0.4;
 
 export default function App() {
   const [minutesInput, setMinutesInput] = useState<string>(String(DEFAULT_MINUTES));
@@ -93,6 +74,7 @@ export default function App() {
   const prefetchIdRef = useRef<number>(0);
   const speechEnabledRef = useRef<boolean>(speechEnabled);
   const ttsModeRef = useRef<TtsMode>(ttsMode);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const totalSeconds = useMemo(() => durationMinutes * 60, [durationMinutes]);
   const progress = useMemo(() => {
@@ -101,8 +83,6 @@ export default function App() {
   }, [secondsLeft, totalSeconds]);
 
   const milestones = useMemo(() => computeMilestones(totalSeconds), [totalSeconds]);
-
-  const canBrowserSpeak = typeof window !== "undefined" && !!window.speechSynthesis;
 
   useEffect(() => {
     let cancelled = false;
@@ -137,21 +117,22 @@ export default function App() {
       } catch {
         if (cancelled) return;
         setVoiceOptions([]);
-        setTtsMode("fallback");
-        setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
+        setSpeechEnabled(false);
+        setTtsNote("OpenAI TTS unavailable.");
       }
     }
     loadVoices();
     return () => {
       cancelled = true;
     };
-  }, [canBrowserSpeak]);
+  }, []);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current != null) window.clearInterval(intervalRef.current);
       intervalRef.current = null;
       stopAudio();
+      stopBackgroundMusic();
     };
   }, []);
 
@@ -180,7 +161,34 @@ export default function App() {
 
   function stopSpeech() {
     stopAudio();
-    if (canBrowserSpeak) window.speechSynthesis?.cancel();
+  }
+
+  function startBackgroundMusic() {
+    const audio = new Audio(backMusicUrl);
+    audio.loop = true;
+    audio.volume = NORMAL_VOLUME;
+    audio.play();
+    backgroundAudioRef.current = audio;
+  }
+
+  function stopBackgroundMusic() {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.pause();
+      backgroundAudioRef.current.currentTime = 0;
+      backgroundAudioRef.current = null;
+    }
+  }
+
+  function duckBackgroundMusic() {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = DUCK_VOLUME;
+    }
+  }
+
+  function restoreBackgroundMusic() {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = NORMAL_VOLUME;
+    }
   }
 
   async function playBlob(blob: Blob) {
@@ -196,13 +204,16 @@ export default function App() {
         URL.revokeObjectURL(url);
         audioUrlRef.current = null;
       }
+      restoreBackgroundMusic();
     };
     audio.onerror = () => {
       if (audioUrlRef.current === url) {
         URL.revokeObjectURL(url);
         audioUrlRef.current = null;
       }
+      restoreBackgroundMusic();
     };
+    duckBackgroundMusic();
     await audio.play();
   }
 
@@ -262,8 +273,8 @@ export default function App() {
       try {
         await getTtsBlob(text, voice, speed);
       } catch {
-        setTtsMode("fallback");
-        setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
+        setSpeechEnabled(false);
+        setTtsNote("OpenAI TTS unavailable.");
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 40));
@@ -271,33 +282,20 @@ export default function App() {
   }
 
   async function speakKokoro(text: string) {
-    if (canBrowserSpeak) window.speechSynthesis?.cancel();
     const padded = padShortUtterance(text);
     const speed = clampFloat(speechSpeed, speedRange.min, speedRange.max);
     const blob = await getTtsBlob(padded, voiceId, speed);
     await playBlob(blob);
   }
 
-  function speakFallback(text: string) {
-    const padded = padShortUtterance(text);
-    speakBrowser(padded, { speed: speechSpeed, volume: speechVolume });
-  }
-
   function speakWithSettings(text: string) {
     if (!speechEnabled) return;
     void (async () => {
-      if (ttsMode === "kokoro") {
-        try {
-          await speakKokoro(text);
-          return;
-        } catch {
-          setTtsMode("fallback");
-          setTtsNote(canBrowserSpeak ? "OpenAI TTS unavailable; using browser voice." : "Speech unavailable in this browser.");
-        }
-      }
-      if (canBrowserSpeak) {
-        stopAudio();
-        speakFallback(text);
+      try {
+        await speakKokoro(text);
+      } catch {
+        setSpeechEnabled(false);
+        setTtsNote("OpenAI TTS unavailable.");
       }
     })();
   }
@@ -346,6 +344,7 @@ export default function App() {
     lastSpokenRef.current = null;
     stopSpeech();
     cancelPrefetch();
+    startBackgroundMusic();
 
     if (speechEnabled && ttsMode === "kokoro") {
       const lines = buildPrefetchLines(startSeconds, activity, userName);
@@ -368,6 +367,7 @@ export default function App() {
           if (speechEnabled) {
             speakWithSettings(buildCongratsLine(userName, activity));
           }
+          stopBackgroundMusic();
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
@@ -384,6 +384,7 @@ export default function App() {
     setIsRunning(false);
     clearIntervalIfAny();
     stopSpeech();
+    backgroundAudioRef.current?.pause();
   }
 
   function resume() {
@@ -394,6 +395,8 @@ export default function App() {
       const lines = buildPrefetchLines(totalSeconds, activity, userName);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
+
+    backgroundAudioRef.current?.play();
 
     announce(secondsLeft);
 
@@ -406,6 +409,7 @@ export default function App() {
           if (speechEnabled) {
             speakWithSettings(buildCongratsLine(userName, activity));
           }
+          stopBackgroundMusic();
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
@@ -432,6 +436,7 @@ export default function App() {
     setSecondsLeft(durationMinutes * 60);
     lastSpokenRef.current = null;
     cancelPrefetch();
+    stopBackgroundMusic();
   }
 
   const statusText = isFinished
@@ -441,9 +446,8 @@ export default function App() {
       : secondsLeft === totalSeconds
         ? "Ready"
         : "Paused";
-  const speechStatusText =
-    ttsMode === "kokoro" ? "OpenAI TTS" : canBrowserSpeak ? "Browser fallback" : "Speech unavailable";
-  const speechAvailable = ttsMode === "kokoro" || canBrowserSpeak;
+  const speechStatusText = ttsMode === "kokoro" ? "OpenAI TTS" : "Unavailable";
+  const speechAvailable = ttsMode === "kokoro";
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex items-center justify-center p-4">
