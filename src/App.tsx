@@ -9,7 +9,7 @@
 // - Milestone callouts at 25%, 50%, 75%, 90%
 // ---------------------------------------------------------------
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_MINUTES,
   buildCongratsLine,
@@ -25,6 +25,15 @@ import {
   type PrefetchLine,
 } from "./ttsUtils";
 import backMusicUrl from "./assets/backmusic.mp3";
+import {
+  cameraErrorMessage,
+  createRecorder,
+  buildVideoBlob,
+  downloadBlob,
+  generateFilename,
+  getSupportedMimeType,
+  requestCamera,
+} from "./cameraUtils";
 
 type VoiceOption = {
   id: string;
@@ -91,6 +100,19 @@ export default function App() {
   // Web Audio API for iOS-compatible volume control
   const audioContextRef = useRef<AudioContext | null>(null);
   const bgGainNodeRef = useRef<GainNode | null>(null);
+
+  // Camera (dev-only)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [autoRecord, setAutoRecord] = useState(true);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [cameraError, setCameraError] = useState("");
+  const [showCamera, setShowCamera] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const playbackUrlRef = useRef<string>("");
 
   const totalSeconds = useMemo(() => durationMinutes * 60, [durationMinutes]);
   const progress = useMemo(() => {
@@ -172,6 +194,15 @@ export default function App() {
   useEffect(() => {
     ttsModeRef.current = ttsMode;
   }, [ttsMode]);
+
+  // Camera cleanup
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      cameraStream?.getTracks().forEach((t) => t.stop());
+      if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
+    };
+  }, [cameraStream]);
 
   function stopAudio() {
     if (audioRef.current) {
@@ -339,6 +370,105 @@ export default function App() {
     prefetchIdRef.current += 1;
   }
 
+  // ---- Camera handlers (dev-only) ----
+  const handleEnableCamera = useCallback(async () => {
+    setCameraError("");
+    try {
+      const stream = await requestCamera();
+      setCameraStream(stream);
+      setRecordedBlob(null);
+      if (playbackUrlRef.current) {
+        URL.revokeObjectURL(playbackUrlRef.current);
+        playbackUrlRef.current = "";
+      }
+      // Attach to preview after render
+      requestAnimationFrame(() => {
+        if (previewRef.current) {
+          previewRef.current.srcObject = stream;
+        }
+      });
+    } catch (err) {
+      setCameraError(cameraErrorMessage(err));
+    }
+  }, []);
+
+  const handleDisableCamera = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    cameraStream?.getTracks().forEach((t) => t.stop());
+    setCameraStream(null);
+    setIsRecording(false);
+    setRecordedBlob(null);
+    setCameraError("");
+    videoChunksRef.current = [];
+    if (playbackUrlRef.current) {
+      URL.revokeObjectURL(playbackUrlRef.current);
+      playbackUrlRef.current = "";
+    }
+    if (previewRef.current) {
+      previewRef.current.srcObject = null;
+    }
+  }, [cameraStream]);
+
+  const startRecording = useCallback(() => {
+    if (!cameraStream) return;
+    const mimeType = getSupportedMimeType();
+    if (!mimeType && typeof MediaRecorder === "undefined") {
+      setCameraError("Recording not supported in this browser.");
+      return;
+    }
+    videoChunksRef.current = [];
+    setRecordedBlob(null);
+    if (playbackUrlRef.current) {
+      URL.revokeObjectURL(playbackUrlRef.current);
+      playbackUrlRef.current = "";
+    }
+    try {
+      const recorder = createRecorder(
+        cameraStream,
+        (chunk) => videoChunksRef.current.push(chunk),
+        () => {
+          const mime = mimeType || "video/webm";
+          const blob = buildVideoBlob(videoChunksRef.current, mime);
+          setRecordedBlob(blob);
+          setIsRecording(false);
+          const url = URL.createObjectURL(blob);
+          if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
+          playbackUrlRef.current = url;
+        },
+      );
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setCameraError("Recording failed unexpectedly.");
+    }
+  }, [cameraStream]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  const handleDownload = useCallback(() => {
+    if (!recordedBlob) return;
+    downloadBlob(recordedBlob, generateFilename());
+  }, [recordedBlob]);
+
+  const handleDeleteRecording = useCallback(() => {
+    setRecordedBlob(null);
+    if (playbackUrlRef.current) {
+      URL.revokeObjectURL(playbackUrlRef.current);
+      playbackUrlRef.current = "";
+    }
+    // Re-attach live preview
+    if (previewRef.current && cameraStream) {
+      previewRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream]);
+
   async function prefetchLines(lines: PrefetchLine[], voice: string, speed: number) {
     const prefetchId = ++prefetchIdRef.current;
     for (const line of lines) {
@@ -443,6 +573,11 @@ export default function App() {
       speakWithSettings(buildStartLine(userName, activity));
     }
 
+    // Auto-start camera recording if enabled (dev-only)
+    if (import.meta.env.DEV && autoRecord && cameraStream && !isRecording) {
+      startRecording();
+    }
+
     // start boundary
     announce(startSeconds);
 
@@ -459,6 +594,8 @@ export default function App() {
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
+          // Stop camera recording when timer finishes
+          if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
         }
 
@@ -508,6 +645,8 @@ export default function App() {
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
+          // Stop camera recording when timer finishes
+          if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
         }
 
@@ -532,6 +671,8 @@ export default function App() {
     lastSpokenRef.current = null;
     cancelPrefetch();
     stopBackgroundMusic();
+    // Stop camera recording on manual stop
+    if (mediaRecorderRef.current?.state === "recording") stopRecording();
   }
 
   const statusText = isFinished
@@ -752,6 +893,128 @@ export default function App() {
             </div>
           </div>
         </div>
+
+        {import.meta.env.DEV && (
+          <div className="mt-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 shadow-xl">
+            <button
+              className="w-full flex items-center justify-between px-6 py-4 text-left"
+              onClick={() => setShowCamera((v) => !v)}
+            >
+              <span className="text-sm font-semibold text-zinc-50">Camera (local only)</span>
+              <svg
+                className={`h-4 w-4 text-zinc-400 transition-transform ${showCamera ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showCamera && (
+              <div className="px-6 pb-6 space-y-4">
+                {cameraError && (
+                  <div className="rounded-xl bg-red-950/60 border border-red-800 px-4 py-3 text-sm text-red-300">
+                    {cameraError}
+                  </div>
+                )}
+
+                <div className="relative aspect-video rounded-xl bg-zinc-950 overflow-hidden">
+                  {cameraStream && !recordedBlob ? (
+                    <video
+                      ref={previewRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : recordedBlob && playbackUrlRef.current ? (
+                    <video
+                      src={playbackUrlRef.current}
+                      controls
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
+                      Enable camera to see preview
+                    </div>
+                  )}
+
+                  {isRecording && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 rounded-full px-2.5 py-1">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-xs font-semibold text-red-400">REC</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 flex-wrap">
+                  {!cameraStream ? (
+                    <button
+                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
+                      onClick={handleEnableCamera}
+                    >
+                      Enable Camera
+                    </button>
+                  ) : (
+                    <button
+                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
+                      onClick={handleDisableCamera}
+                    >
+                      Disable Camera
+                    </button>
+                  )}
+
+                  {!isRecording ? (
+                    <button
+                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={startRecording}
+                      disabled={!cameraStream}
+                    >
+                      Start Recording
+                    </button>
+                  ) : (
+                    <button
+                      className="rounded-xl px-4 py-2 bg-red-900 text-zinc-50 font-semibold hover:bg-red-800 transition focus:ring-2 focus:ring-zinc-600"
+                      onClick={stopRecording}
+                    >
+                      Stop Recording
+                    </button>
+                  )}
+
+                  {recordedBlob && (
+                    <>
+                      <button
+                        className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
+                        onClick={handleDownload}
+                      >
+                        Download
+                      </button>
+                      <button
+                        className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition focus:ring-2 focus:ring-zinc-600"
+                        onClick={handleDeleteRecording}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={autoRecord}
+                    onChange={(e) => setAutoRecord(e.target.checked)}
+                  />
+                  <span className="text-sm text-zinc-200">Auto-record when timer starts</span>
+                </label>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 text-xs text-zinc-500 leading-relaxed">
           <p>
