@@ -204,6 +204,13 @@ export default function App() {
     };
   }, [cameraStream]);
 
+  // Attach camera stream to preview element after React commits the DOM
+  useEffect(() => {
+    if (previewRef.current && cameraStream && !recordedBlob) {
+      previewRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream, recordedBlob]);
+
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -381,12 +388,6 @@ export default function App() {
         URL.revokeObjectURL(playbackUrlRef.current);
         playbackUrlRef.current = "";
       }
-      // Attach to preview after render
-      requestAnimationFrame(() => {
-        if (previewRef.current) {
-          previewRef.current.srcObject = stream;
-        }
-      });
     } catch (err) {
       setCameraError(cameraErrorMessage(err));
     }
@@ -463,11 +464,7 @@ export default function App() {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = "";
     }
-    // Re-attach live preview
-    if (previewRef.current && cameraStream) {
-      previewRef.current.srcObject = cameraStream;
-    }
-  }, [cameraStream]);
+  }, []);
 
   async function prefetchLines(lines: PrefetchLine[], voice: string, speed: number) {
     const prefetchId = ++prefetchIdRef.current;
