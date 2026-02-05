@@ -573,8 +573,8 @@ export default function App() {
       speakWithSettings(buildStartLine(userName, activity));
     }
 
-    // Auto-start camera recording if enabled (dev-only)
-    if (import.meta.env.DEV && autoRecord && cameraStream && !isRecording) {
+    // Auto-start camera recording if enabled
+    if (autoRecord && cameraStream && !isRecording) {
       startRecording();
     }
 
@@ -894,13 +894,12 @@ export default function App() {
           </div>
         </div>
 
-        {import.meta.env.DEV && (
-          <div className="mt-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 shadow-xl">
+        <div className="mt-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 shadow-xl">
             <button
               className="w-full flex items-center justify-between px-6 py-4 text-left"
               onClick={() => setShowCamera((v) => !v)}
             >
-              <span className="text-sm font-semibold text-zinc-50">Camera (local only)</span>
+              <span className="text-sm font-semibold text-zinc-50">Camera</span>
               <svg
                 className={`h-4 w-4 text-zinc-400 transition-transform ${showCamera ? "rotate-180" : ""}`}
                 fill="none"
@@ -1014,7 +1013,6 @@ export default function App() {
               </div>
             )}
           </div>
-        )}
 
         <div className="mt-4 text-xs text-zinc-500 leading-relaxed">
           <p>
