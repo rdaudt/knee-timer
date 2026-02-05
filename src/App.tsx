@@ -110,7 +110,7 @@ export default function App() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
   const previewRef = useRef<HTMLVideoElement>(null);
-  const playbackUrlRef = useRef<string>("");
+  const [playbackUrl, setPlaybackUrl] = useState<string>("");
 
   const totalSeconds = useMemo(() => durationMinutes * 60, [durationMinutes]);
   const progress = useMemo(() => {
@@ -198,7 +198,6 @@ export default function App() {
     return () => {
       if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
       cameraStream?.getTracks().forEach((t) => t.stop());
-      if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
     };
   }, [cameraStream]);
 
@@ -382,10 +381,7 @@ export default function App() {
       const stream = await requestCamera();
       setCameraStream(stream);
       setRecordedBlob(null);
-      if (playbackUrlRef.current) {
-        URL.revokeObjectURL(playbackUrlRef.current);
-        playbackUrlRef.current = "";
-      }
+      setPlaybackUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return ""; });
     } catch (err) {
       setCameraError(cameraErrorMessage(err));
     }
@@ -401,10 +397,7 @@ export default function App() {
     setRecordedBlob(null);
     setCameraError("");
     videoChunksRef.current = [];
-    if (playbackUrlRef.current) {
-      URL.revokeObjectURL(playbackUrlRef.current);
-      playbackUrlRef.current = "";
-    }
+    setPlaybackUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return ""; });
     if (previewRef.current) {
       previewRef.current.srcObject = null;
     }
@@ -419,10 +412,7 @@ export default function App() {
     }
     videoChunksRef.current = [];
     setRecordedBlob(null);
-    if (playbackUrlRef.current) {
-      URL.revokeObjectURL(playbackUrlRef.current);
-      playbackUrlRef.current = "";
-    }
+    setPlaybackUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return ""; });
     try {
       const recorder = createRecorder(
         cameraStream,
@@ -430,11 +420,11 @@ export default function App() {
         () => {
           const mime = mimeType || "video/webm";
           const blob = buildVideoBlob(videoChunksRef.current, mime);
+          const url = URL.createObjectURL(blob);
+          // Set URL before blob so both are ready when React renders
+          setPlaybackUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
           setRecordedBlob(blob);
           setIsRecording(false);
-          const url = URL.createObjectURL(blob);
-          if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
-          playbackUrlRef.current = url;
         },
       );
       recorder.start(1000);
@@ -453,10 +443,7 @@ export default function App() {
 
   const handleDeleteRecording = useCallback(() => {
     setRecordedBlob(null);
-    if (playbackUrlRef.current) {
-      URL.revokeObjectURL(playbackUrlRef.current);
-      playbackUrlRef.current = "";
-    }
+    setPlaybackUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return ""; });
   }, []);
 
   async function prefetchLines(lines: PrefetchLine[], voice: string, speed: number) {
@@ -918,9 +905,9 @@ export default function App() {
                       playsInline
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                  ) : recordedBlob && playbackUrlRef.current ? (
+                  ) : recordedBlob && playbackUrl ? (
                     <video
-                      src={playbackUrlRef.current}
+                      src={playbackUrl}
                       controls
                       playsInline
                       className="absolute inset-0 w-full h-full object-cover"
