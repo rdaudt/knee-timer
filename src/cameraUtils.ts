@@ -62,18 +62,14 @@ export function buildVideoBlob(chunks: Blob[], mimeType: string): Blob {
   return new Blob(chunks, { type: mimeType || "video/webm" });
 }
 
-export function canShareFiles(): boolean {
-  return typeof navigator.share === "function" && typeof navigator.canShare === "function";
+export function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-export async function shareBlob(blob: Blob, filename: string): Promise<void> {
-  const file = new File([blob], filename, { type: blob.type });
-  if (!navigator.canShare({ files: [file] })) {
-    // Fall back to download if the file type can't be shared
-    downloadBlob(blob, filename);
-    return;
-  }
-  await navigator.share({ files: [file] });
+export function openBlobInNewTab(blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {
