@@ -457,7 +457,7 @@ export default function App() {
 
   const handleSaveRecording = useCallback(() => {
     if (!recordedBlob) return;
-    const filename = generateFilename();
+    const filename = generateFilename(recordedBlob.type);
     if (canShareFiles()) {
       shareBlob(recordedBlob, filename).catch(() => {
         // User cancelled share sheet — ignore

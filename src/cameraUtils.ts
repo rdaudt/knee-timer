@@ -68,6 +68,11 @@ export function canShareFiles(): boolean {
 
 export async function shareBlob(blob: Blob, filename: string): Promise<void> {
   const file = new File([blob], filename, { type: blob.type });
+  if (!navigator.canShare({ files: [file] })) {
+    // Fall back to download if the file type can't be shared
+    downloadBlob(blob, filename);
+    return;
+  }
   await navigator.share({ files: [file] });
 }
 
@@ -82,10 +87,16 @@ export function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function generateFilename(): string {
+function extensionForMime(mime: string): string {
+  if (mime.includes("mp4")) return ".mp4";
+  return ".webm";
+}
+
+export function generateFilename(mimeType?: string): string {
   const d = new Date();
   const pad2 = (n: number) => String(n).padStart(2, "0");
   const date = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   const time = `${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
-  return `knee-session-${date}-${time}.webm`;
+  const ext = extensionForMime(mimeType ?? "");
+  return `knee-session-${date}-${time}${ext}`;
 }
