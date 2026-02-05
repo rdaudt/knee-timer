@@ -29,6 +29,8 @@ import {
   cameraErrorMessage,
   createRecorder,
   buildVideoBlob,
+  canShareFiles,
+  shareBlob,
   downloadBlob,
   generateFilename,
   getSupportedMimeType,
@@ -453,9 +455,16 @@ export default function App() {
     }
   }, []);
 
-  const handleDownload = useCallback(() => {
+  const handleSaveRecording = useCallback(() => {
     if (!recordedBlob) return;
-    downloadBlob(recordedBlob, generateFilename());
+    const filename = generateFilename();
+    if (canShareFiles()) {
+      shareBlob(recordedBlob, filename).catch(() => {
+        // User cancelled share sheet — ignore
+      });
+    } else {
+      downloadBlob(recordedBlob, filename);
+    }
   }, [recordedBlob]);
 
   const handleDeleteRecording = useCallback(() => {
@@ -984,9 +993,9 @@ export default function App() {
                     <>
                       <button
                         className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
-                        onClick={handleDownload}
+                        onClick={handleSaveRecording}
                       >
-                        Download
+                        {canShareFiles() ? "Share" : "Download"}
                       </button>
                       <button
                         className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition focus:ring-2 focus:ring-zinc-600"

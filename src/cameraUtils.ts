@@ -62,6 +62,15 @@ export function buildVideoBlob(chunks: Blob[], mimeType: string): Blob {
   return new Blob(chunks, { type: mimeType || "video/webm" });
 }
 
+export function canShareFiles(): boolean {
+  return typeof navigator.share === "function" && typeof navigator.canShare === "function";
+}
+
+export async function shareBlob(blob: Blob, filename: string): Promise<void> {
+  const file = new File([blob], filename, { type: blob.type });
+  await navigator.share({ files: [file] });
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
