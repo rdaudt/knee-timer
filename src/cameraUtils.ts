@@ -67,9 +67,31 @@ export function isIOS(): boolean {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-export function openBlobInNewTab(blob: Blob): void {
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+export async function saveBlob(blob: Blob, filename: string): Promise<void> {
+  if (navigator.share) {
+    const file = new File([blob], filename, { type: blob.type || "video/mp4" });
+    if (navigator.canShare?.({ files: [file] }) !== false) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Fall through to fallback
+      }
+    }
+  }
+  // Fallback: on iOS open in new tab (download attr is ignored), on desktop use <a download>
+  if (isIOS()) {
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  } else {
+    downloadBlob(blob, filename);
+  }
+}
+
+export function isMobile(): boolean {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

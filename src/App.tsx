@@ -30,7 +30,8 @@ import {
   createRecorder,
   buildVideoBlob,
   isIOS,
-  openBlobInNewTab,
+  isMobile,
+  saveBlob,
   downloadBlob,
   generateFilename,
   getSupportedMimeType,
@@ -110,6 +111,7 @@ export default function App() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [cameraError, setCameraError] = useState("");
   const [showCamera, setShowCamera] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
@@ -423,6 +425,7 @@ export default function App() {
     }
     videoChunksRef.current = [];
     setRecordedBlob(null);
+    setShowSavePrompt(false);
     if (playbackUrlRef.current) {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = "";
@@ -439,6 +442,9 @@ export default function App() {
           const url = URL.createObjectURL(blob);
           if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
           playbackUrlRef.current = url;
+          if (isMobile()) {
+            setShowSavePrompt(true);
+          }
         },
       );
       recorder.start(1000);
@@ -455,17 +461,19 @@ export default function App() {
     }
   }, []);
 
-  const handleSaveRecording = useCallback(() => {
+  const handleSaveRecording = useCallback(async () => {
     if (!recordedBlob) return;
     if (isIOS()) {
-      openBlobInNewTab(recordedBlob);
+      await saveBlob(recordedBlob, generateFilename(recordedBlob.type));
     } else {
       downloadBlob(recordedBlob, generateFilename(recordedBlob.type));
     }
+    setShowSavePrompt(false);
   }, [recordedBlob]);
 
   const handleDeleteRecording = useCallback(() => {
     setRecordedBlob(null);
+    setShowSavePrompt(false);
     if (playbackUrlRef.current) {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = "";
@@ -951,6 +959,25 @@ export default function App() {
                     </div>
                   )}
                 </div>
+
+                {showSavePrompt && recordedBlob && (
+                  <div className="rounded-xl bg-emerald-900/70 border border-emerald-700 p-4 text-center space-y-3">
+                    <p className="text-sm font-semibold text-emerald-100">
+                      Your exercise recording is ready!
+                    </p>
+                    <button
+                      className="w-full rounded-xl px-4 py-3 bg-emerald-600 text-white font-semibold text-base hover:bg-emerald-500 transition focus:ring-2 focus:ring-emerald-400"
+                      onClick={handleSaveRecording}
+                    >
+                      {isIOS() ? "Save to Photos" : "Download Recording"}
+                    </button>
+                    {isIOS() && (
+                      <p className="text-xs text-emerald-300">
+                        Tap &quot;Save Video&quot; on the share sheet to save to your camera roll.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-3 flex-wrap">
                   {!cameraStream ? (
