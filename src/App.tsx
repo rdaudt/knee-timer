@@ -29,11 +29,6 @@ import {
   cameraErrorMessage,
   createRecorder,
   buildVideoBlob,
-  isIOS,
-  isMobile,
-  saveBlob,
-  downloadBlob,
-  generateFilename,
   getSupportedMimeType,
   requestCamera,
 } from "./cameraUtils";
@@ -111,7 +106,6 @@ export default function App() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [cameraError, setCameraError] = useState("");
   const [showCamera, setShowCamera] = useState(false);
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
@@ -425,7 +419,6 @@ export default function App() {
     }
     videoChunksRef.current = [];
     setRecordedBlob(null);
-    setShowSavePrompt(false);
     if (playbackUrlRef.current) {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = "";
@@ -442,9 +435,6 @@ export default function App() {
           const url = URL.createObjectURL(blob);
           if (playbackUrlRef.current) URL.revokeObjectURL(playbackUrlRef.current);
           playbackUrlRef.current = url;
-          if (isMobile()) {
-            setShowSavePrompt(true);
-          }
         },
       );
       recorder.start(1000);
@@ -461,19 +451,8 @@ export default function App() {
     }
   }, []);
 
-  const handleSaveRecording = useCallback(async () => {
-    if (!recordedBlob) return;
-    if (isIOS()) {
-      await saveBlob(recordedBlob, generateFilename(recordedBlob.type));
-    } else {
-      downloadBlob(recordedBlob, generateFilename(recordedBlob.type));
-    }
-    setShowSavePrompt(false);
-  }, [recordedBlob]);
-
   const handleDeleteRecording = useCallback(() => {
     setRecordedBlob(null);
-    setShowSavePrompt(false);
     if (playbackUrlRef.current) {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = "";
@@ -558,7 +537,7 @@ export default function App() {
   }
 
   function start() {
-    const mins = clampInt(parseInt(minutesInput, 10), 1, 180);
+    const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
     const startSeconds = mins * 60;
 
     // Update refs synchronously BEFORE any announce calls (avoids stale closure)
@@ -740,11 +719,11 @@ export default function App() {
 
             <div className="mt-5 flex items-end gap-3 flex-wrap">
               <label className="flex-1 min-w-[180px]">
-                <div className="text-sm text-zinc-300 mb-1">Minutes (1-180)</div>
+                <div className="text-sm text-zinc-300 mb-1">Minutes (1-15)</div>
                 <input
                   type="number"
                   min={1}
-                  max={180}
+                  max={15}
                   step={1}
                   inputMode="numeric"
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
@@ -960,25 +939,6 @@ export default function App() {
                   )}
                 </div>
 
-                {showSavePrompt && recordedBlob && (
-                  <div className="rounded-xl bg-emerald-900/70 border border-emerald-700 p-4 text-center space-y-3">
-                    <p className="text-sm font-semibold text-emerald-100">
-                      Your exercise recording is ready!
-                    </p>
-                    <button
-                      className="w-full rounded-xl px-4 py-3 bg-emerald-600 text-white font-semibold text-base hover:bg-emerald-500 transition focus:ring-2 focus:ring-emerald-400"
-                      onClick={handleSaveRecording}
-                    >
-                      {isIOS() ? "Save to Photos" : "Download Recording"}
-                    </button>
-                    {isIOS() && (
-                      <p className="text-xs text-emerald-300">
-                        Tap &quot;Save Video&quot; on the share sheet to save to your camera roll.
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 <div className="flex gap-3 flex-wrap">
                   {!cameraStream ? (
                     <button
@@ -1014,20 +974,12 @@ export default function App() {
                   )}
 
                   {recordedBlob && (
-                    <>
-                      <button
-                        className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
-                        onClick={handleSaveRecording}
-                      >
-                        {isIOS() ? "Save" : "Download"}
-                      </button>
-                      <button
-                        className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition focus:ring-2 focus:ring-zinc-600"
-                        onClick={handleDeleteRecording}
-                      >
-                        Delete
-                      </button>
-                    </>
+                    <button
+                      className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition focus:ring-2 focus:ring-zinc-600"
+                      onClick={handleDeleteRecording}
+                    >
+                      Delete
+                    </button>
                   )}
                 </div>
 

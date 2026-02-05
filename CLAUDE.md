@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Knee-Timer is a motivational rehabilitation timer web app for knee recovery exercises. It provides encouraging audio coaching every 30 seconds during timed sessions (1-180 minutes), with milestone callouts at 25%, 50%, 75%, and 90% completion.
+Knee-Timer is a motivational rehabilitation timer web app for knee recovery exercises. It provides encouraging audio coaching every 30 seconds during timed sessions (1-15 minutes), with milestone callouts at 25%, 50%, 75%, and 90% completion.
 
 **Live URL:** https://knee-timer.vercel.app
 
