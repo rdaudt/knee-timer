@@ -899,6 +899,7 @@ export default function App() {
                 <div className="relative aspect-video rounded-xl bg-zinc-950 overflow-hidden">
                   {cameraStream && !recordedBlob ? (
                     <video
+                      key="preview"
                       ref={previewRef}
                       autoPlay
                       muted
@@ -907,6 +908,7 @@ export default function App() {
                     />
                   ) : recordedBlob && playbackUrl ? (
                     <video
+                      key="playback"
                       src={playbackUrl}
                       controls
                       playsInline
