@@ -71,6 +71,11 @@ export default function App() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isFinished, setIsFinished] = useState<boolean>(false);
 
+  // Wait time before timer starts
+  const [waitTimeInput, setWaitTimeInput] = useState<string>("0");
+  const [isWaiting, setIsWaiting] = useState<boolean>(false);
+  const [waitSecondsLeft, setWaitSecondsLeft] = useState<number>(0);
+
   // Personalization
   const [userName, setUserName] = useState<string>("");
   const [activity, setActivity] = useState<string>("physio");
@@ -86,6 +91,7 @@ export default function App() {
   const [ttsNote, setTtsNote] = useState<string>("");
 
   const intervalRef = useRef<number | null>(null);
+  const waitIntervalRef = useRef<number | null>(null);
   const lastSpokenRef = useRef<number | string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
@@ -176,6 +182,8 @@ export default function App() {
     return () => {
       if (intervalRef.current != null) window.clearInterval(intervalRef.current);
       intervalRef.current = null;
+      if (waitIntervalRef.current != null) window.clearInterval(waitIntervalRef.current);
+      waitIntervalRef.current = null;
       stopAudio();
       stopBackgroundMusic();
     };
@@ -493,6 +501,11 @@ export default function App() {
     intervalRef.current = null;
   }
 
+  function clearWaitIntervalIfAny() {
+    if (waitIntervalRef.current != null) window.clearInterval(waitIntervalRef.current);
+    waitIntervalRef.current = null;
+  }
+
   function announce(currentSecondsLeft: number) {
     if (!speechEnabled) return;
 
@@ -523,7 +536,7 @@ export default function App() {
     speakWithSettings(buildMotivationLine(base, activity));
   }
 
-  function start() {
+  function startTimer() {
     const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
     const startSeconds = mins * 60;
 
@@ -582,6 +595,35 @@ export default function App() {
     }, 1000);
   }
 
+  function start() {
+    const waitMins = clampInt(parseInt(waitTimeInput, 10), 0, 3);
+
+    if (waitMins === 0) {
+      startTimer();
+      return;
+    }
+
+    // Start wait countdown
+    const waitSecs = waitMins * 60;
+    setIsWaiting(true);
+    setWaitSecondsLeft(waitSecs);
+
+    clearWaitIntervalIfAny();
+    waitIntervalRef.current = window.setInterval(() => {
+      setWaitSecondsLeft((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          clearWaitIntervalIfAny();
+          setIsWaiting(false);
+          // Use setTimeout to ensure state flush before starting timer
+          setTimeout(() => startTimer(), 0);
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+  }
+
   function pause() {
     setIsRunning(false);
     clearIntervalIfAny();
@@ -634,6 +676,9 @@ export default function App() {
   }
 
   function reset() {
+    clearWaitIntervalIfAny();
+    setIsWaiting(false);
+    setWaitSecondsLeft(0);
     pause();
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);
@@ -642,6 +687,9 @@ export default function App() {
   }
 
   function stopAndClear() {
+    clearWaitIntervalIfAny();
+    setIsWaiting(false);
+    setWaitSecondsLeft(0);
     pause();
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);
@@ -652,13 +700,15 @@ export default function App() {
     if (mediaRecorderRef.current?.state === "recording") stopRecording();
   }
 
-  const statusText = isFinished
-    ? "Session complete - nice work."
-    : isRunning
-      ? "Running"
-      : secondsLeft === totalSeconds
-        ? "Ready"
-        : "Paused";
+  const statusText = isWaiting
+    ? "Get ready..."
+    : isFinished
+      ? "Session complete - nice work."
+      : isRunning
+        ? "Running"
+        : secondsLeft === totalSeconds
+          ? "Ready"
+          : "Paused";
   const speechStatusText = ttsMode === "kokoro" ? "OpenAI TTS" : "Unavailable";
   const speechAvailable = ttsMode === "kokoro";
 
@@ -687,7 +737,7 @@ export default function App() {
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
-                  disabled={isRunning}
+                  disabled={isRunning || isWaiting}
                 />
               </label>
 
@@ -699,7 +749,7 @@ export default function App() {
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
                   value={activity}
                   onChange={(e) => setActivity(e.target.value)}
-                  disabled={isRunning}
+                  disabled={isRunning || isWaiting}
                 />
               </label>
             </div>
@@ -716,11 +766,26 @@ export default function App() {
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
                   value={minutesInput}
                   onChange={(e) => setMinutesInput(e.target.value)}
-                  disabled={isRunning}
+                  disabled={isRunning || isWaiting}
                 />
               </label>
 
-              {!isRunning && secondsLeft === totalSeconds ? (
+              <label className="min-w-[100px]">
+                <div className="text-sm text-zinc-300 mb-1">Wait (0-3 min)</div>
+                <input
+                  type="number"
+                  min={0}
+                  max={3}
+                  step={1}
+                  inputMode="numeric"
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
+                  value={waitTimeInput}
+                  onChange={(e) => setWaitTimeInput(e.target.value)}
+                  disabled={isRunning || isWaiting}
+                />
+              </label>
+
+              {!isRunning && !isWaiting && secondsLeft === totalSeconds ? (
                 <button
                   className="rounded-xl px-4 py-2 bg-zinc-50 text-zinc-950 font-semibold hover:opacity-90 transition"
                   onClick={start}
@@ -736,7 +801,7 @@ export default function App() {
                 >
                   Pause
                 </button>
-              ) : secondsLeft > 0 && secondsLeft !== totalSeconds ? (
+              ) : !isWaiting && secondsLeft > 0 && secondsLeft !== totalSeconds ? (
                 <button
                   className="rounded-xl px-4 py-2 bg-zinc-50 text-zinc-950 font-semibold hover:opacity-90 transition"
                   onClick={resume}
@@ -748,7 +813,7 @@ export default function App() {
               <button
                 className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition"
                 onClick={reset}
-                disabled={isRunning || totalSeconds === 0}
+                disabled={isRunning || isWaiting || totalSeconds === 0}
               >
                 Reset
               </button>
@@ -762,23 +827,33 @@ export default function App() {
             </div>
 
             <div className="mt-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-zinc-400">Time remaining</div>
-                <div className="text-sm text-zinc-400">{Math.round(progress * 100)}%</div>
-              </div>
-
-              <div className="mt-2 rounded-full h-3 bg-zinc-800 overflow-hidden">
-                <div className="h-full bg-zinc-50" style={{ width: `${Math.round(progress * 100)}%` }} />
-              </div>
-
-              <div className="mt-6 text-center">
-                <div className="text-6xl font-bold tabular-nums tracking-tight">{formatMMSS(secondsLeft)}</div>
-                <div className="mt-2 text-zinc-300">
-                  {secondsLeft > 0
-                    ? "You're rebuilding your future mobility - stay steady."
-                    : "Done. Be proud of showing up."}
+              {isWaiting ? (
+                <div className="mt-6 text-center">
+                  <div className="text-sm text-zinc-400 mb-2">Starting in</div>
+                  <div className="text-6xl font-bold tabular-nums tracking-tight text-amber-400">{formatMMSS(waitSecondsLeft)}</div>
+                  <div className="mt-2 text-zinc-300">Get into position...</div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-zinc-400">Time remaining</div>
+                    <div className="text-sm text-zinc-400">{Math.round(progress * 100)}%</div>
+                  </div>
+
+                  <div className="mt-2 rounded-full h-3 bg-zinc-800 overflow-hidden">
+                    <div className="h-full bg-zinc-50" style={{ width: `${Math.round(progress * 100)}%` }} />
+                  </div>
+
+                  <div className="mt-6 text-center">
+                    <div className="text-6xl font-bold tabular-nums tracking-tight">{formatMMSS(secondsLeft)}</div>
+                    <div className="mt-2 text-zinc-300">
+                      {secondsLeft > 0
+                        ? "You're rebuilding your future mobility - stay steady."
+                        : "Done. Be proud of showing up."}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
