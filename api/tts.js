@@ -62,6 +62,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Access code gate — protect against unauthorized OpenAI spend
+  const ACCESS_CODE = process.env.ACCESS_CODE || "";
+  if (ACCESS_CODE) {
+    const provided = req.headers["x-access-code"] || "";
+    if (provided !== ACCESS_CODE) {
+      return res.status(401).json({ error: "Invalid or missing access code" });
+    }
+  }
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
   if (!OPENAI_API_KEY) {
     return res.status(500).json({ error: "OPENAI_API_KEY is not set" });
@@ -83,6 +92,7 @@ export default async function handler(req, res) {
   const cacheKey = makeCacheKey(text, voice, speed);
   const cached = getCache(cacheKey);
   if (cached) {
+    console.log(JSON.stringify({ event: "tts", cache: "HIT", chars: text.length, voice, ts: Date.now() }));
     res.setHeader("Content-Type", cached.contentType);
     res.setHeader("X-Cache", "HIT");
     return res.status(200).send(cached.buffer);
@@ -107,6 +117,7 @@ export default async function handler(req, res) {
 
   if (!openaiRes.ok) {
     const detail = await openaiRes.text();
+    console.log(JSON.stringify({ event: "tts", cache: "ERROR", chars: text.length, voice, status: openaiRes.status, ts: Date.now() }));
     return res.status(openaiRes.status).json({ error: "OpenAI request failed", detail: detail.slice(0, 800) });
   }
 
@@ -115,6 +126,7 @@ export default async function handler(req, res) {
   const buffer = Buffer.from(arrayBuffer);
 
   setCache(cacheKey, { buffer, contentType, expiresAt: Date.now() + CACHE_TTL_MS });
+  console.log(JSON.stringify({ event: "tts", cache: "MISS", chars: text.length, voice, ts: Date.now() }));
   res.setHeader("Content-Type", contentType);
   res.setHeader("X-Cache", "MISS");
   return res.status(200).send(buffer);
