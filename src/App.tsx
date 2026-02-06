@@ -880,6 +880,8 @@ export default function App() {
 
   const percentComplete = Math.round(progress * 100);
 
+  const [accessCodeLoading, setAccessCodeLoading] = useState(false);
+
   function handleAccessCodeSubmit(e: React.FormEvent) {
     e.preventDefault();
     const code = accessCodeInput.trim();
@@ -887,9 +889,24 @@ export default function App() {
       setAccessCodeError("Please enter an access code.");
       return;
     }
-    localStorage.setItem(ACCESS_CODE_KEY, code);
-    setAccessCode(code);
+    setAccessCodeLoading(true);
     setAccessCodeError("");
+    fetch("/api/verify-code", {
+      method: "POST",
+      headers: { "x-access-code": code },
+    })
+      .then((res) => {
+        if (res.ok) {
+          localStorage.setItem(ACCESS_CODE_KEY, code);
+          setAccessCode(code);
+        } else {
+          setAccessCodeError("Invalid access code. Please try again.");
+        }
+      })
+      .catch(() => {
+        setAccessCodeError("Could not verify code. Check your connection and try again.");
+      })
+      .finally(() => setAccessCodeLoading(false));
   }
 
   // Access code gate — show code entry screen if no code stored
@@ -921,8 +938,8 @@ export default function App() {
             {accessCodeError && (
               <div className="mt-3 text-sm text-warmred">{accessCodeError}</div>
             )}
-            <button type="submit" className="btn-primary w-full mt-5 text-base">
-              Continue
+            <button type="submit" className="btn-primary w-full mt-5 text-base" disabled={accessCodeLoading}>
+              {accessCodeLoading ? "Verifying..." : "Continue"}
             </button>
           </form>
         </div>
