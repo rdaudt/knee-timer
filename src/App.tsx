@@ -43,7 +43,7 @@ type VoiceOption = {
 
 type TtsMode = "kokoro";
 
-const DEFAULT_VOICE_ID = "af_heart";
+const DEFAULT_VOICE_ID = "echo";
 const SPEED_DEFAULT = 1;
 const SPEED_MIN = 0.8;
 const SPEED_MAX = 1.2;
