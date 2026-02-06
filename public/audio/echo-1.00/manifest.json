@@ -1,11 +1,83 @@
 {
-  "87c53354d3235eed7bd156977b0c5c21b626cd0e74ce484b506baab1b13756e0": {
-    "text": "Alright for physio. Let's start. You've got this. Keep going.",
-    "desc": "start"
+  "40618c3c7375782de524614591d03e41ef444f10067e3d8773bb890018a76aa5": {
+    "text": "Ok, let's get started. Let's make this effort count. Keep going.",
+    "desc": "start-0"
   },
-  "7f03fee347c510c2c00685c585d65c491675b7cfe441df05befd4910b4f5b3a8": {
-    "text": "Time. Amazing work. You finished with physio. Keep going. Keep going.",
-    "desc": "end"
+  "00f108c5771938579301493d53c96633a9ed97d48a9e9ec26bf3308f0fd15dbe": {
+    "text": "Ok, it is knee healing time, let's get started. Keep going.",
+    "desc": "start-1"
+  },
+  "920036d33464c1458135ac4cd88435e47b627bb0ab4b2264a0cf6055d3ca378b": {
+    "text": "Alright, time to strengthen that knee. Here we go. Keep going.",
+    "desc": "start-2"
+  },
+  "f15215a8c6ca92fe62161ce5dcc1e94ca79aa75bdfe139cf767d73527dd8536f": {
+    "text": "Let's do this. Every second counts toward recovery. Keep going.",
+    "desc": "start-3"
+  },
+  "204ecb258ca25cb4990b7cffee5369d5d88a1efde98d57bc8baa60f93f9b25cb": {
+    "text": "Ready? Let's go. Your knee will thank you for this.",
+    "desc": "start-4"
+  },
+  "cb541253de38e4b671719855d4fe1a605b140a4d411ccedd766a1b12d434932c": {
+    "text": "Ok, it's go time. Let's make every rep matter. Keep going.",
+    "desc": "start-5"
+  },
+  "72eb5789f9286ab2a736f82f675b44068a89a9a75131327dbc2f2d7893c540f5": {
+    "text": "Here we go. Stay focused and give it your best.",
+    "desc": "start-6"
+  },
+  "9b236b05d46abeec787f93a51e8653c050550f41c981c2bfa9cc207f67cfb5db": {
+    "text": "Time to get to work. You've got what it takes.",
+    "desc": "start-7"
+  },
+  "4264e8c6bdf759fa8c0919ce0c8c8aa97cc5abe7a26a35c8fe8e886a0d2bde30": {
+    "text": "Let's begin. This is where the healing happens. Keep going.",
+    "desc": "start-8"
+  },
+  "c4eabebbb30b7999c799c556cedff0f6d57ef1eb8b016aa15a218e10216d00bc": {
+    "text": "Alright, let's get moving. Your knee is counting on you.",
+    "desc": "start-9"
+  },
+  "d8a4f317577d2fe0d2b2c2b7b63c7d40c1a5320edeefb03f6d8506baad51eb36": {
+    "text": "Time's up. You did great. See you next session. Keep going.",
+    "desc": "congrats-0"
+  },
+  "35e26fe677bb4b503f0fced43897e7d62e1fa4f7a71e822db15c47112f79490d": {
+    "text": "And that's it. Amazing effort, well done. Keep going. Keep going.",
+    "desc": "congrats-1"
+  },
+  "fcdf4545b125ad43488e1f923e9ac4be9d0c2d3cd5f851a11a62d7c93e559013": {
+    "text": "Done. You should be proud of that effort. Keep going.",
+    "desc": "congrats-2"
+  },
+  "f2a67e88707e8136bbf8489799115d5167949acbd020c130bc362b419b7f448b": {
+    "text": "That's a wrap. Great work today. Keep going. Keep going.",
+    "desc": "congrats-3"
+  },
+  "695e3615fab278b509e5db7d926b8bc777b4a72cb5ce608ff09e867df932bdc8": {
+    "text": "Finished. Another session in the books, well done. Keep going.",
+    "desc": "congrats-4"
+  },
+  "728547cb89c028a92b65530636ba9b16acd9c3c5a0ed91b4bddffe18ada16e55": {
+    "text": "Time. You gave it your all, and it shows. Keep going.",
+    "desc": "congrats-5"
+  },
+  "bb5ccc83e4db1f013e55ce1472750d695dd6c633e236d4e097566e170e5961ab": {
+    "text": "And we're done. Excellent work, until next time. Keep going.",
+    "desc": "congrats-6"
+  },
+  "0a7ed04b59ec01f54f8efbbc34f4883e3f4e383deb22a609984c93905e55b134": {
+    "text": "That's it. Really solid effort today. Keep going. Keep going.",
+    "desc": "congrats-7"
+  },
+  "6abde6d8cb70acce113e1c41ab32bd3bd982f28d5baa7cfdc72bc12588595996": {
+    "text": "Session complete. You're getting stronger every time. Keep going. Keep going.",
+    "desc": "congrats-8"
+  },
+  "bbe24c2c68968b8a94031c3e9a446b863d5980577bf96c3da40f716236fe1fa6": {
+    "text": "Done. Great job, rest up and see you next session.",
+    "desc": "congrats-9"
   },
   "9222f8e20e3f62bcd43c00c8343c52f3213b4b094aeba4e0549642864f3ef55f": {
     "text": "25 percent done. Your knee is warming up and responding - great pace.",
