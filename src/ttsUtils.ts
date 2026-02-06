@@ -156,18 +156,38 @@ export function pickMotivation(i: number) {
   return MOTIVATION_BANK[i % MOTIVATION_BANK.length];
 }
 
-export function buildStartLine(name: string, activity: string) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` for ${act}` : "";
-  return n ? `Alright ${n}${actPart}. Let's start. You've got this.` : `Alright${actPart}. Let's start. You've got this.`;
+export const START_BANK: string[] = [
+  "Ok, let's get started. Let's make this effort count.",
+  "Ok, it is knee healing time, let's get started.",
+  "Alright, time to strengthen that knee. Here we go.",
+  "Let's do this. Every second counts toward recovery.",
+  "Ready? Let's go. Your knee will thank you for this.",
+  "Ok, it's go time. Let's make every rep matter.",
+  "Here we go. Stay focused and give it your best.",
+  "Time to get to work. You've got what it takes.",
+  "Let's begin. This is where the healing happens.",
+  "Alright, let's get moving. Your knee is counting on you.",
+];
+
+export const CONGRATS_BANK: string[] = [
+  "Time's up. You did great. See you next session.",
+  "And that's it. Amazing effort, well done.",
+  "Done. You should be proud of that effort.",
+  "That's a wrap. Great work today.",
+  "Finished. Another session in the books, well done.",
+  "Time. You gave it your all, and it shows.",
+  "And we're done. Excellent work, until next time.",
+  "That's it. Really solid effort today.",
+  "Session complete. You're getting stronger every time.",
+  "Done. Great job, rest up and see you next session.",
+];
+
+export function buildStartLine() {
+  return START_BANK[Math.floor(Math.random() * START_BANK.length)];
 }
 
-export function buildCongratsLine(name: string, activity: string) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` with ${act}` : "";
-  return n ? `Time. Amazing work, ${n}. You finished${actPart}.` : `Time. Amazing work. You finished${actPart}.`;
+export function buildCongratsLine() {
+  return CONGRATS_BANK[Math.floor(Math.random() * CONGRATS_BANK.length)];
 }
 
 export function buildMotivationLine(base: string, activity: string) {
@@ -203,13 +223,13 @@ export function computeMilestones(totalSeconds: number): Milestone[] {
   ];
 }
 
-export function buildPrefetchLines(totalSeconds: number, activity: string, userName: string): PrefetchLine[] {
+export function buildPrefetchLines(totalSeconds: number, activity: string): PrefetchLine[] {
   const lines: PrefetchLine[] = [];
   const milestones = computeMilestones(totalSeconds);
   const milestoneSet = new Set(milestones.map((m) => m.elapsed));
 
-  lines.push({ key: "start", text: buildStartLine(userName, activity) });
-  lines.push({ key: "end", text: buildCongratsLine(userName, activity) });
+  lines.push({ key: "start", text: buildStartLine() });
+  lines.push({ key: "end", text: buildCongratsLine() });
   for (const m of milestones) {
     lines.push({ key: m.key, text: m.text });
   }

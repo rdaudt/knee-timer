@@ -7,9 +7,11 @@ import {
   buildStartLine,
   clampFloat,
   clampInt,
+  CONGRATS_BANK,
   computeMilestones,
   formatMMSS,
   padShortUtterance,
+  START_BANK,
 } from "./ttsUtils";
 
 describe("ttsUtils", () => {
@@ -24,10 +26,17 @@ describe("ttsUtils", () => {
     expect(formatMMSS(61)).toBe("01:01");
   });
 
-  it("builds lines with name/activity", () => {
-    expect(buildStartLine("Alex", "physio")).toContain("Alex");
-    expect(buildStartLine("", "physio")).toContain("physio");
-    expect(buildCongratsLine("Sam", "stretching")).toContain("Sam");
+  it("builds start/congrats from random banks", () => {
+    const start = buildStartLine();
+    expect(typeof start).toBe("string");
+    expect(start.length).toBeGreaterThan(0);
+    expect(START_BANK).toContain(start);
+
+    const congrats = buildCongratsLine();
+    expect(typeof congrats).toBe("string");
+    expect(congrats.length).toBeGreaterThan(0);
+    expect(CONGRATS_BANK).toContain(congrats);
+
     expect(buildMotivationLine("Base", "rehab")).toContain("rehab");
   });
 
@@ -39,7 +48,7 @@ describe("ttsUtils", () => {
   });
 
   it("builds prefetch lines with milestones and cadence", () => {
-    const lines = buildPrefetchLines(120, "physio", "Alex");
+    const lines = buildPrefetchLines(120, "physio");
     const keys = new Set(lines.map((l) => l.key));
 
     expect(keys.has("start")).toBe(true);

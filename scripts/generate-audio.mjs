@@ -146,23 +146,31 @@ function padShortUtterance(text) {
   return result;
 }
 
-function buildStartLine(name, activity) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` for ${act}` : "";
-  return n
-    ? `Alright ${n}${actPart}. Let's start. You've got this.`
-    : `Alright${actPart}. Let's start. You've got this.`;
-}
+const START_BANK = [
+  "Ok, let's get started. Let's make this effort count.",
+  "Ok, it is knee healing time, let's get started.",
+  "Alright, time to strengthen that knee. Here we go.",
+  "Let's do this. Every second counts toward recovery.",
+  "Ready? Let's go. Your knee will thank you for this.",
+  "Ok, it's go time. Let's make every rep matter.",
+  "Here we go. Stay focused and give it your best.",
+  "Time to get to work. You've got what it takes.",
+  "Let's begin. This is where the healing happens.",
+  "Alright, let's get moving. Your knee is counting on you.",
+];
 
-function buildCongratsLine(name, activity) {
-  const n = (name || "").trim();
-  const act = (activity || "").trim();
-  const actPart = act ? ` with ${act}` : "";
-  return n
-    ? `Time. Amazing work, ${n}. You finished${actPart}.`
-    : `Time. Amazing work. You finished${actPart}.`;
-}
+const CONGRATS_BANK = [
+  "Time's up. You did great. See you next session.",
+  "And that's it. Amazing effort, well done.",
+  "Done. You should be proud of that effort.",
+  "That's a wrap. Great work today.",
+  "Finished. Another session in the books, well done.",
+  "Time. You gave it your all, and it shows.",
+  "And we're done. Excellent work, until next time.",
+  "That's it. Really solid effort today.",
+  "Session complete. You're getting stronger every time.",
+  "Done. Great job, rest up and see you next session.",
+];
 
 function buildMotivationLine(base, activity) {
   const act = (activity || "").trim();
@@ -185,16 +193,18 @@ function computeMilestones(totalSeconds) {
 // ---------------------------------------------------------------------------
 
 function collectAllTexts() {
-  const userName = "";
   const activity = "physio";
   const textSet = new Map(); // text → description (for manifest)
 
-  // Start & end lines
-  const startText = padShortUtterance(buildStartLine(userName, activity));
-  textSet.set(startText, "start");
+  // Start lines (all variations)
+  for (let i = 0; i < START_BANK.length; i++) {
+    textSet.set(padShortUtterance(START_BANK[i]), `start-${i}`);
+  }
 
-  const endText = padShortUtterance(buildCongratsLine(userName, activity));
-  textSet.set(endText, "end");
+  // End/congrats lines (all variations)
+  for (let i = 0; i < CONGRATS_BANK.length; i++) {
+    textSet.set(padShortUtterance(CONGRATS_BANK[i]), `congrats-${i}`);
+  }
 
   // Milestone texts (same for all durations)
   const milestoneTexts = [

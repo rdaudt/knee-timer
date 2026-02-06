@@ -151,7 +151,6 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState<boolean>(false);
 
   // Personalization (kept internally, not exposed in UI)
-  const [userName] = useState<string>("");
   const [activity] = useState<string>("physio");
 
   // Speech settings
@@ -706,12 +705,12 @@ export default function App() {
     startBackgroundMusic();
 
     if (speechEnabled && ttsMode === "kokoro") {
-      const lines = buildPrefetchLines(startSeconds, activity, userName);
+      const lines = buildPrefetchLines(startSeconds, activity);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
     if (speechEnabled) {
-      speakWithSettings(buildStartLine(userName, activity));
+      speakWithSettings(buildStartLine());
     }
 
     // Auto-start camera recording if enabled
@@ -729,7 +728,7 @@ export default function App() {
 
         if (next <= 0) {
           if (speechEnabled) {
-            speakWithSettings(buildCongratsLine(userName, activity));
+            speakWithSettings(buildCongratsLine());
           }
           stopBackgroundMusic();
           clearIntervalIfAny();
@@ -761,7 +760,7 @@ export default function App() {
     // Prefetch TTS lines during the wait so audio blobs are cached and ready
     if (speechEnabled && ttsMode === "kokoro") {
       const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
-      const lines = buildPrefetchLines(mins * 60, activity, userName);
+      const lines = buildPrefetchLines(mins * 60, activity);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
@@ -797,7 +796,7 @@ export default function App() {
     setIsRunning(true);
 
     if (speechEnabled && ttsMode === "kokoro") {
-      const lines = buildPrefetchLines(totalSeconds, activity, userName);
+      const lines = buildPrefetchLines(totalSeconds, activity);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
@@ -819,7 +818,7 @@ export default function App() {
 
         if (next <= 0) {
           if (speechEnabled) {
-            speakWithSettings(buildCongratsLine(userName, activity));
+            speakWithSettings(buildCongratsLine());
           }
           stopBackgroundMusic();
           clearIntervalIfAny();
@@ -1065,6 +1064,7 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <div className="text-xs mt-1">&nbsp;</div>
                 </div>
               </div>
 
