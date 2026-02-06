@@ -1,4 +1,4 @@
-﻿// Motivational 30-Second Timer (Knee Rehab)
+// Motivational 30-Second Timer (Knee Rehab)
 // ---------------------------------------------------------------
 // Features:
 // - Single timer at a time
@@ -64,6 +64,57 @@ function getSharedTtsAudio(): HTMLAudioElement {
   return sharedTtsAudio;
 }
 
+// ---- Circular Progress Ring Component ----
+function ProgressRing({
+  progress,
+  size = 280,
+  strokeWidth = 8,
+  isRunning,
+  isFinished,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+  isRunning: boolean;
+  isFinished: boolean;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - progress);
+
+  const strokeColor = isFinished
+    ? "var(--color-warmsuccess)"
+    : "var(--color-warmgold)";
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      className={`-rotate-90 ${isRunning && !isFinished ? "animate-breathe-ring" : ""}`}
+    >
+      {/* Track */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        className="progress-ring-track"
+        strokeWidth={strokeWidth}
+      />
+      {/* Fill */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        className="progress-ring-fill"
+        strokeWidth={strokeWidth + 1}
+        stroke={strokeColor}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+      />
+    </svg>
+  );
+}
+
 export default function App() {
   const [minutesInput, setMinutesInput] = useState<string>(String(DEFAULT_MINUTES));
   const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_MINUTES);
@@ -104,6 +155,7 @@ export default function App() {
   // Web Audio API for iOS-compatible volume control
   const audioContextRef = useRef<AudioContext | null>(null);
   const bgGainNodeRef = useRef<GainNode | null>(null);
+  const bgSourceConnectedRef = useRef<boolean>(false);
 
   // Camera (dev-only)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -233,7 +285,21 @@ export default function App() {
   }
 
   function startBackgroundMusic() {
-    // Use Web Audio API for iOS-compatible volume control
+    // If the pipeline was pre-built by unlockAudio() (wait-time path),
+    // the audio is playing silently at gain 0 — raise gain after resume.
+    if (backgroundAudioRef.current && bgGainNodeRef.current && audioContextRef.current) {
+      const ctx = audioContextRef.current;
+      const gain = bgGainNodeRef.current;
+      const audio = backgroundAudioRef.current;
+      // Ensure context is running FIRST, then raise gain and ensure playback
+      ctx.resume().then(() => {
+        gain.gain.setValueAtTime(NORMAL_VOLUME, ctx.currentTime);
+        audio.play().catch(() => {});
+      });
+      return;
+    }
+
+    // Otherwise create everything from scratch (no-wait path, user gesture context)
     const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) {
       // Fallback for browsers without Web Audio API
@@ -261,10 +327,11 @@ export default function App() {
 
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
+    bgSourceConnectedRef.current = true;
 
     // Resume context (required for iOS after user gesture)
     ctx.resume().then(() => {
-      audio.play();
+      audio.play().catch(() => {});
     });
   }
 
@@ -279,6 +346,7 @@ export default function App() {
       audioContextRef.current = null;
     }
     bgGainNodeRef.current = null;
+    bgSourceConnectedRef.current = false;
   }
 
   function duckBackgroundMusic() {
@@ -536,6 +604,47 @@ export default function App() {
     speakWithSettings(buildMotivationLine(base, activity));
   }
 
+  // Build full background music pipeline at gain 0 (silent) during a user
+  // gesture. Browsers block AudioContext creation and audio.play() outside
+  // gesture context, but startTimer() fires from setTimeout after the wait.
+  // Audio is routed through Web Audio gain node at 0 — NOT native volume
+  // (which is read-only on iOS). startBackgroundMusic() raises the gain.
+  function unlockAudio() {
+    // 1. Build full background music pipeline at gain 0 (silent)
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (AudioContextClass) {
+      const ctx = new AudioContextClass();
+      audioContextRef.current = ctx;
+
+      const audio = new Audio(backMusicUrl);
+      audio.loop = true;
+      audio.crossOrigin = "anonymous";
+      backgroundAudioRef.current = audio;
+
+      const source = ctx.createMediaElementSource(audio);
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 0; // silent — routed through Web Audio, not native volume
+      bgGainNodeRef.current = gainNode;
+
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      bgSourceConnectedRef.current = true;
+
+      // Start playing silently to unlock the Audio element for later use
+      ctx.resume().then(() => { audio.play().catch(() => {}); });
+    }
+
+    // 2. Unlock the shared TTS audio element with a silent play
+    const ttsAudio = getSharedTtsAudio();
+    ttsAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+    ttsAudio.volume = 0;
+    ttsAudio.play().then(() => {
+      ttsAudio.pause();
+      ttsAudio.volume = 1;
+      ttsAudio.src = "";
+    }).catch(() => {});
+  }
+
   function startTimer() {
     const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
     const startSeconds = mins * 60;
@@ -599,6 +708,19 @@ export default function App() {
     if (waitSeconds === 0) {
       startTimer();
       return;
+    }
+
+    // Silently unlock AudioContext and TTS audio element while we still have
+    // user-gesture context. startTimer() fires from setTimeout inside
+    // setInterval which is no longer a gesture, so browsers would block
+    // AudioContext creation and audio.play() without this.
+    unlockAudio();
+
+    // Prefetch TTS lines during the wait so audio blobs are cached and ready
+    if (speechEnabled && ttsMode === "kokoro") {
+      const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
+      const lines = buildPrefetchLines(mins * 60, activity, userName);
+      void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
     // Start wait countdown
@@ -697,160 +819,199 @@ export default function App() {
     if (mediaRecorderRef.current?.state === "recording") stopRecording();
   }
 
-  const statusText = isWaiting
-    ? "Get ready..."
-    : isFinished
-      ? "Session complete - nice work."
-      : isRunning
-        ? "Running"
-        : secondsLeft === totalSeconds
-          ? "Ready"
-          : "Paused";
   const speechAvailable = ttsMode === "kokoro";
 
+  // Status helpers for UI
+  const isPaused = !isRunning && !isWaiting && !isFinished && secondsLeft > 0 && secondsLeft !== totalSeconds;
+  const isReady = !isRunning && !isWaiting && !isFinished && secondsLeft === totalSeconds;
+
+  // Motivational subtitle that changes with state
+  const motivationalSubtitle = isWaiting
+    ? "Take a breath. Find your position."
+    : isFinished
+      ? "You showed up and pushed through. That takes real strength."
+      : isRunning
+        ? "You're rebuilding your future mobility \u2014 stay steady."
+        : isPaused
+          ? "Take a moment. When you're ready, continue."
+          : "Every session brings you closer to freedom of movement.";
+
+  const percentComplete = Math.round(progress * 100);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
-        <div className="rounded-2xl bg-zinc-900/60 shadow-xl border border-zinc-800 p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Motivational 30-Second Timer</h1>
-              <p className="text-zinc-300 mt-1">Rehab is hard. This keeps you moving through it.</p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Status</div>
-              <div className="text-base font-medium">{statusText}</div>
-            </div>
+    <div className="min-h-screen bg-warm-gradient grain-overlay font-[family-name:var(--font-body)] text-warmtext flex flex-col items-center justify-center p-4 selection:bg-warmgold/30">
+      <div className="relative z-10 w-full max-w-lg">
+        {/* ---- Header ---- */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl text-warmcream tracking-tight leading-tight">
+            Knee Rehab
+            <span className="block text-warmgold">Companion</span>
+          </h1>
+          <p className="mt-3 text-warmmuted text-sm sm:text-base leading-relaxed max-w-xs mx-auto">
+            {motivationalSubtitle}
+          </p>
+        </div>
+
+        {/* ---- Main Panel ---- */}
+        <div className="panel-warm p-6 sm:p-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+
+          {/* ---- Timer Display ---- */}
+          <div className="flex flex-col items-center">
+            {isWaiting ? (
+              /* ---- Wait Countdown ---- */
+              <div className="text-center animate-fade-in-up">
+                <div className="relative inline-flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-warmamber/5 animate-breathe" />
+                  <div className="relative py-8">
+                    <div className="text-warmmuted text-sm uppercase tracking-widest mb-3">Starting in</div>
+                    <div className="font-[family-name:var(--font-display)] text-7xl sm:text-8xl text-warmamber tabular-nums tracking-tight">
+                      {formatMMSS(waitSecondsLeft)}
+                    </div>
+                    <div className="mt-4 flex items-center justify-center gap-2 text-warmamber/70">
+                      <span className="h-2 w-2 rounded-full bg-warmamber animate-pulse-dot" />
+                      <span className="text-sm">Get into position</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ---- Main Timer with Ring ---- */
+              <div className="relative flex items-center justify-center">
+                <ProgressRing
+                  progress={progress}
+                  size={260}
+                  strokeWidth={6}
+                  isRunning={isRunning}
+                  isFinished={isFinished}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  {isFinished ? (
+                    <div className="text-center animate-celebration">
+                      <div className="text-warmsuccess text-sm uppercase tracking-widest mb-1">Session Complete</div>
+                      <div className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl text-warmcream tabular-nums">
+                        {formatMMSS(secondsLeft)}
+                      </div>
+                      <div className="mt-2 shimmer-text text-sm font-medium">
+                        Be proud of showing up
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-warmmuted text-xs uppercase tracking-widest mb-1">
+                        {isRunning ? `${percentComplete}% complete` : isPaused ? "Paused" : "Ready"}
+                      </div>
+                      <div className={`font-[family-name:var(--font-display)] text-5xl sm:text-6xl tabular-nums tracking-tight ${
+                        isRunning ? "text-warmcream" : "text-warmmuted"
+                      }`}>
+                        {formatMMSS(secondsLeft)}
+                      </div>
+                      {isRunning && (
+                        <div className="mt-2 text-warmgold/80 text-xs">
+                          {durationMinutes} min session
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="mt-6">
-            <div className="flex items-end gap-3 flex-wrap">
-              <label className="flex-1 min-w-[180px]">
-                <div className="text-sm text-zinc-300 mb-1">Minutes (1-15)</div>
-                <input
-                  type="number"
-                  min={1}
-                  max={15}
-                  step={1}
-                  inputMode="numeric"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                  value={minutesInput}
-                  onChange={(e) => setMinutesInput(e.target.value)}
-                  disabled={isRunning || isWaiting}
-                />
-              </label>
+          {/* ---- Setup Controls ---- */}
+          {!isRunning && !isWaiting && (
+            <div className="mt-8 space-y-5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+              {/* Duration + Wait */}
+              <div className="flex items-end gap-4 flex-wrap">
+                <label className="flex-1 min-w-[140px]">
+                  <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Duration</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={15}
+                    step={1}
+                    inputMode="numeric"
+                    className="input-warm w-full text-lg"
+                    value={minutesInput}
+                    onChange={(e) => setMinutesInput(e.target.value)}
+                    disabled={isRunning || isWaiting}
+                  />
+                  <div className="text-xs text-warmmuted mt-1">1 &ndash; 15 minutes</div>
+                </label>
 
-              <div className="flex flex-col">
-                <div className="text-sm text-zinc-300 mb-1">Wait</div>
-                <div className="flex rounded-xl overflow-hidden border border-zinc-800">
-                  <button
-                    className={`px-3 py-2 text-sm font-medium transition ${
-                      waitSeconds === 0 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                    onClick={() => setWaitSeconds(0)}
-                    disabled={isRunning || isWaiting}
-                  >
-                    None
-                  </button>
-                  <button
-                    className={`px-3 py-2 text-sm font-medium transition border-l border-zinc-800 ${
-                      waitSeconds === 30 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                    onClick={() => setWaitSeconds(30)}
-                    disabled={isRunning || isWaiting}
-                  >
-                    30s
-                  </button>
-                  <button
-                    className={`px-3 py-2 text-sm font-medium transition border-l border-zinc-800 ${
-                      waitSeconds === 60 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                    onClick={() => setWaitSeconds(60)}
-                    disabled={isRunning || isWaiting}
-                  >
-                    1m
-                  </button>
+                <div className="flex-1 min-w-[140px]">
+                  <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Prep time</div>
+                  <div className="flex rounded-xl overflow-hidden border border-warmborder">
+                    {([
+                      { val: 0, label: "None" },
+                      { val: 30, label: "30s" },
+                      { val: 60, label: "1m" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.val}
+                        className={`wait-btn flex-1 ${waitSeconds === opt.val ? "active" : ""}`}
+                        onClick={() => setWaitSeconds(opt.val)}
+                        disabled={isRunning || isWaiting}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {!isRunning && !isWaiting && secondsLeft === totalSeconds ? (
-                <button
-                  className="rounded-xl px-4 py-2 bg-zinc-50 text-zinc-950 font-semibold hover:opacity-90 transition"
-                  onClick={start}
-                >
-                  Start
-                </button>
-              ) : null}
+              {/* Action Buttons */}
+              <div className="flex gap-3 flex-wrap">
+                {isReady && (
+                  <button className="btn-primary flex-1 text-base" onClick={start}>
+                    Begin Session
+                  </button>
+                )}
+                {isPaused && (
+                  <button className="btn-primary flex-1 text-base" onClick={resume}>
+                    Continue
+                  </button>
+                )}
+                {isFinished && (
+                  <button className="btn-primary flex-1 text-base" onClick={reset}>
+                    New Session
+                  </button>
+                )}
+                {(isPaused || isFinished) && (
+                  <button
+                    className="btn-secondary"
+                    onClick={reset}
+                    disabled={totalSeconds === 0}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
-              {isRunning ? (
-                <button
-                  className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition"
-                  onClick={pause}
-                >
+          {/* ---- Running Controls ---- */}
+          {(isRunning || isWaiting) && (
+            <div className="mt-8 flex gap-3 justify-center animate-fade-in-up">
+              {isRunning && (
+                <button className="btn-secondary flex-1 max-w-[160px]" onClick={pause}>
                   Pause
                 </button>
-              ) : !isWaiting && secondsLeft > 0 && secondsLeft !== totalSeconds ? (
-                <button
-                  className="rounded-xl px-4 py-2 bg-zinc-50 text-zinc-950 font-semibold hover:opacity-90 transition"
-                  onClick={resume}
-                >
-                  Resume
-                </button>
-              ) : null}
-
-              <button
-                className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition"
-                onClick={reset}
-                disabled={isRunning || isWaiting || totalSeconds === 0}
-              >
-                Reset
-              </button>
-
-              <button
-                className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition"
-                onClick={stopAndClear}
-              >
+              )}
+              <button className="btn-ghost flex-1 max-w-[160px]" onClick={stopAndClear}>
                 Stop
               </button>
             </div>
+          )}
+        </div>
 
-            <div className="mt-6">
-              {isWaiting ? (
-                <div className="mt-6 text-center">
-                  <div className="text-sm text-zinc-400 mb-2">Starting in</div>
-                  <div className="text-6xl font-bold tabular-nums tracking-tight text-amber-400">{formatMMSS(waitSecondsLeft)}</div>
-                  <div className="mt-2 text-zinc-300">Get into position...</div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-zinc-400">Time remaining</div>
-                    <div className="text-sm text-zinc-400">{Math.round(progress * 100)}%</div>
-                  </div>
-
-                  <div className="mt-2 rounded-full h-3 bg-zinc-800 overflow-hidden">
-                    <div className="h-full bg-zinc-50" style={{ width: `${Math.round(progress * 100)}%` }} />
-                  </div>
-
-                  <div className="mt-6 text-center">
-                    <div className="text-6xl font-bold tabular-nums tracking-tight">{formatMMSS(secondsLeft)}</div>
-                    <div className="mt-2 text-zinc-300">
-                      {secondsLeft > 0
-                        ? "You're rebuilding your future mobility - stay steady."
-                        : "Done. Be proud of showing up."}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-8 border-t border-zinc-800 pt-6">
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="flex-1 min-w-[180px]">
-                <div className="text-sm text-zinc-300 mb-1">Voice</div>
+        {/* ---- Voice Settings ---- */}
+        <div className="panel-warm mt-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          <div className="p-5">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="flex-1 min-w-[160px]">
+                <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Coach voice</div>
                 <select
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
+                  className="select-warm w-full"
                   value={voiceId}
                   onChange={(e) => setVoiceId(e.target.value)}
                   disabled={ttsMode !== "kokoro" || voiceOptions.length === 0}
@@ -866,141 +1027,137 @@ export default function App() {
                   )}
                 </select>
               </label>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3 flex-wrap">
-              <button
-                className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition"
-                onClick={() => {
-                  speakWithSettings(buildMotivationLine("Preview: You're doing great. Keep going.", activity));
-                }}
-                disabled={!speechAvailable || !speechEnabled}
-              >
-                Test voice
-              </button>
-              <div className="text-sm text-zinc-400">Tip: If you don't hear anything, click once and try again.</div>
+              <div className="self-end">
+                <button
+                  className="btn-ghost text-sm"
+                  onClick={() => {
+                    speakWithSettings(buildMotivationLine("Preview: You're doing great. Keep going.", activity));
+                  }}
+                  disabled={!speechAvailable || !speechEnabled}
+                >
+                  Test voice
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 shadow-xl">
-            <button
-              className="w-full flex items-center justify-between px-6 py-4 text-left"
-              onClick={() => setShowCamera((v) => !v)}
-            >
-              <span className="text-sm font-semibold text-zinc-50">Camera</span>
-              <svg
-                className={`h-4 w-4 text-zinc-400 transition-transform ${showCamera ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        {/* ---- Camera Section ---- */}
+        <div className="panel-warm mt-4 animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+          <button
+            className="w-full flex items-center justify-between px-5 py-4 text-left group"
+            onClick={() => setShowCamera((v) => !v)}
+          >
+            <span className="text-sm font-semibold text-warmcream flex items-center gap-2">
+              <svg className="h-4 w-4 text-warmmuted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
               </svg>
-            </button>
+              Camera
+            </span>
+            <svg
+              className={`h-4 w-4 text-warmmuted transition-transform duration-300 ${showCamera ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-            {showCamera && (
-              <div className="px-6 pb-6 space-y-4">
-                {cameraError && (
-                  <div className="rounded-xl bg-red-950/60 border border-red-800 px-4 py-3 text-sm text-red-300">
-                    {cameraError}
+          {showCamera && (
+            <div className="px-5 pb-5 space-y-4 animate-fade-in-up">
+              {cameraError && (
+                <div className="rounded-xl bg-warmred/10 border border-warmred/30 px-4 py-3 text-sm text-warmred">
+                  {cameraError}
+                </div>
+              )}
+
+              <div className="relative aspect-video rounded-xl bg-warmblack overflow-hidden border border-warmborderfaint">
+                {cameraStream && !recordedBlob ? (
+                  <video
+                    key="preview"
+                    ref={previewRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : recordedBlob && playbackUrl ? (
+                  <video
+                    key="playback"
+                    src={playbackUrl}
+                    controls
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-warmmuted text-sm">
+                    Enable camera to see preview
                   </div>
                 )}
 
-                <div className="relative aspect-video rounded-xl bg-zinc-950 overflow-hidden">
-                  {cameraStream && !recordedBlob ? (
-                    <video
-                      key="preview"
-                      ref={previewRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : recordedBlob && playbackUrl ? (
-                    <video
-                      key="playback"
-                      src={playbackUrl}
-                      controls
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-sm">
-                      Enable camera to see preview
-                    </div>
-                  )}
-
-                  {isRecording && (
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 rounded-full px-2.5 py-1">
-                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-xs font-semibold text-red-400">REC</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
-                  {!cameraStream ? (
-                    <button
-                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
-                      onClick={handleEnableCamera}
-                    >
-                      Enable Camera
-                    </button>
-                  ) : (
-                    <button
-                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600"
-                      onClick={handleDisableCamera}
-                    >
-                      Disable Camera
-                    </button>
-                  )}
-
-                  {!isRecording ? (
-                    <button
-                      className="rounded-xl px-4 py-2 bg-zinc-800 text-zinc-50 font-semibold hover:bg-zinc-700 transition focus:ring-2 focus:ring-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                      onClick={startRecording}
-                      disabled={!cameraStream}
-                    >
-                      Start Recording
-                    </button>
-                  ) : (
-                    <button
-                      className="rounded-xl px-4 py-2 bg-red-900 text-zinc-50 font-semibold hover:bg-red-800 transition focus:ring-2 focus:ring-zinc-600"
-                      onClick={stopRecording}
-                    >
-                      Stop Recording
-                    </button>
-                  )}
-
-                  {recordedBlob && (
-                    <button
-                      className="rounded-xl px-4 py-2 bg-transparent border border-zinc-700 text-zinc-200 font-semibold hover:bg-zinc-800 transition focus:ring-2 focus:ring-zinc-600"
-                      onClick={handleDeleteRecording}
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={autoRecord}
-                    onChange={(e) => setAutoRecord(e.target.checked)}
-                  />
-                  <span className="text-sm text-zinc-200">Auto-record when timer starts</span>
-                </label>
+                {isRecording && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/70 rounded-full px-3 py-1.5">
+                    <span className="h-2 w-2 rounded-full bg-warmred animate-pulse-dot" />
+                    <span className="text-xs font-semibold text-warmred">REC</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-        <div className="mt-4 text-xs text-zinc-500 leading-relaxed">
-          <p>
-            If your session is extremely painful or worsening, follow your clinician's guidance. This timer is for
-            encouragement, not medical advice.
+              <div className="flex gap-3 flex-wrap">
+                {!cameraStream ? (
+                  <button className="btn-secondary text-sm" onClick={handleEnableCamera}>
+                    Enable Camera
+                  </button>
+                ) : (
+                  <button className="btn-secondary text-sm" onClick={handleDisableCamera}>
+                    Disable Camera
+                  </button>
+                )}
+
+                {!isRecording ? (
+                  <button
+                    className="btn-secondary text-sm disabled:opacity-35 disabled:cursor-not-allowed"
+                    onClick={startRecording}
+                    disabled={!cameraStream}
+                  >
+                    Start Recording
+                  </button>
+                ) : (
+                  <button
+                    className="btn-ghost text-sm !border-warmred/40 !text-warmred hover:!bg-warmred/10"
+                    onClick={stopRecording}
+                  >
+                    Stop Recording
+                  </button>
+                )}
+
+                {recordedBlob && (
+                  <button className="btn-ghost text-sm" onClick={handleDeleteRecording}>
+                    Delete
+                  </button>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-warmgold rounded"
+                  checked={autoRecord}
+                  onChange={(e) => setAutoRecord(e.target.checked)}
+                />
+                <span className="text-sm text-warmmuted">Auto-record when timer starts</span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* ---- Disclaimer ---- */}
+        <div className="mt-6 text-center animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+          <p className="text-xs text-warmmuted/60 leading-relaxed max-w-sm mx-auto">
+            If your session is extremely painful or worsening, follow your clinician's guidance.
+            This timer is for encouragement, not medical advice.
           </p>
         </div>
       </div>
@@ -1040,9 +1197,3 @@ export default function App() {
     assert(m.elapsed >= 0 && m.elapsed <= 37, `milestone within bounds: ${m.key}`);
   }
 })();
-
-
-
-
-
-
