@@ -72,23 +72,23 @@ export default function App() {
   const [isFinished, setIsFinished] = useState<boolean>(false);
 
   // Wait time before timer starts
-  const [waitTimeInput, setWaitTimeInput] = useState<string>("0");
+  const [waitSeconds, setWaitSeconds] = useState<number>(0);
   const [isWaiting, setIsWaiting] = useState<boolean>(false);
   const [waitSecondsLeft, setWaitSecondsLeft] = useState<number>(0);
 
-  // Personalization
-  const [userName, setUserName] = useState<string>("");
-  const [activity, setActivity] = useState<string>("physio");
+  // Personalization (kept internally, not exposed in UI)
+  const [userName] = useState<string>("");
+  const [activity] = useState<string>("physio");
 
   // Speech settings
   const [speechEnabled, setSpeechEnabled] = useState<boolean>(true);
   const [speechSpeed, setSpeechSpeed] = useState<number>(SPEED_DEFAULT);
-  const [speechVolume, setSpeechVolume] = useState<number>(1);
+  const [speechVolume] = useState<number>(1);
   const [voiceId, setVoiceId] = useState<string>(DEFAULT_VOICE_ID);
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
   const [speedRange, setSpeedRange] = useState({ min: SPEED_MIN, max: SPEED_MAX, step: SPEED_STEP });
   const [ttsMode, setTtsMode] = useState<TtsMode>("kokoro");
-  const [ttsNote, setTtsNote] = useState<string>("");
+  const ttsNoteRef = useRef<string>("");
 
   const intervalRef = useRef<number | null>(null);
   const waitIntervalRef = useRef<number | null>(null);
@@ -164,12 +164,12 @@ export default function App() {
             : voices[0]?.id || DEFAULT_VOICE_ID;
         setVoiceId((prev) => prev || nextVoice);
         setTtsMode("kokoro");
-        setTtsNote("");
+        ttsNoteRef.current = "";
       } catch {
         if (cancelled) return;
         setVoiceOptions([]);
         setSpeechEnabled(false);
-        setTtsNote("OpenAI TTS unavailable.");
+        ttsNoteRef.current = "OpenAI TTS unavailable.";
       }
     }
     loadVoices();
@@ -490,7 +490,7 @@ export default function App() {
         // Only disable TTS after 3 consecutive failures
         if (ttsFailCountRef.current >= 3) {
           setSpeechEnabled(false);
-          setTtsNote("OpenAI TTS unavailable.");
+          ttsNoteRef.current = "OpenAI TTS unavailable.";
         }
       }
     })();
@@ -596,17 +596,14 @@ export default function App() {
   }
 
   function start() {
-    const waitMins = clampInt(parseInt(waitTimeInput, 10), 0, 3);
-
-    if (waitMins === 0) {
+    if (waitSeconds === 0) {
       startTimer();
       return;
     }
 
     // Start wait countdown
-    const waitSecs = waitMins * 60;
     setIsWaiting(true);
-    setWaitSecondsLeft(waitSecs);
+    setWaitSecondsLeft(waitSeconds);
 
     clearWaitIntervalIfAny();
     waitIntervalRef.current = window.setInterval(() => {
@@ -709,7 +706,6 @@ export default function App() {
         : secondsLeft === totalSeconds
           ? "Ready"
           : "Paused";
-  const speechStatusText = ttsMode === "kokoro" ? "OpenAI TTS" : "Unavailable";
   const speechAvailable = ttsMode === "kokoro";
 
   return (
@@ -728,33 +724,7 @@ export default function App() {
           </div>
 
           <div className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label>
-                <div className="text-sm text-zinc-300 mb-1">Your name</div>
-                <input
-                  type="text"
-                  placeholder="e.g., Alex"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  disabled={isRunning || isWaiting}
-                />
-              </label>
-
-              <label>
-                <div className="text-sm text-zinc-300 mb-1">What you're doing</div>
-                <input
-                  type="text"
-                  placeholder="e.g., physiotherapy"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                  value={activity}
-                  onChange={(e) => setActivity(e.target.value)}
-                  disabled={isRunning || isWaiting}
-                />
-              </label>
-            </div>
-
-            <div className="mt-5 flex items-end gap-3 flex-wrap">
+            <div className="flex items-end gap-3 flex-wrap">
               <label className="flex-1 min-w-[180px]">
                 <div className="text-sm text-zinc-300 mb-1">Minutes (1-15)</div>
                 <input
@@ -770,20 +740,38 @@ export default function App() {
                 />
               </label>
 
-              <label className="min-w-[100px]">
-                <div className="text-sm text-zinc-300 mb-1">Wait (0-3 min)</div>
-                <input
-                  type="number"
-                  min={0}
-                  max={3}
-                  step={1}
-                  inputMode="numeric"
-                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                  value={waitTimeInput}
-                  onChange={(e) => setWaitTimeInput(e.target.value)}
-                  disabled={isRunning || isWaiting}
-                />
-              </label>
+              <div className="flex flex-col">
+                <div className="text-sm text-zinc-300 mb-1">Wait</div>
+                <div className="flex rounded-xl overflow-hidden border border-zinc-800">
+                  <button
+                    className={`px-3 py-2 text-sm font-medium transition ${
+                      waitSeconds === 0 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                    onClick={() => setWaitSeconds(0)}
+                    disabled={isRunning || isWaiting}
+                  >
+                    None
+                  </button>
+                  <button
+                    className={`px-3 py-2 text-sm font-medium transition border-l border-zinc-800 ${
+                      waitSeconds === 30 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                    onClick={() => setWaitSeconds(30)}
+                    disabled={isRunning || isWaiting}
+                  >
+                    30s
+                  </button>
+                  <button
+                    className={`px-3 py-2 text-sm font-medium transition border-l border-zinc-800 ${
+                      waitSeconds === 60 ? "bg-zinc-50 text-zinc-950" : "bg-zinc-950 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                    onClick={() => setWaitSeconds(60)}
+                    disabled={isRunning || isWaiting}
+                  >
+                    1m
+                  </button>
+                </div>
+              </div>
 
               {!isRunning && !isWaiting && secondsLeft === totalSeconds ? (
                 <button
@@ -858,26 +846,8 @@ export default function App() {
           </div>
 
           <div className="mt-8 border-t border-zinc-800 pt-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="text-sm font-semibold">Voice coach</div>
-                <div className="text-sm text-zinc-400">{speechStatusText}</div>
-                {ttsNote ? <div className="text-xs text-amber-300 mt-1">{ttsNote}</div> : null}
-              </div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={speechEnabled}
-                  onChange={(e) => setSpeechEnabled(e.target.checked)}
-                  disabled={!speechAvailable}
-                />
-                <span className="text-sm text-zinc-200">Enable spoken messages</span>
-              </label>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label>
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex-1 min-w-[180px]">
                 <div className="text-sm text-zinc-300 mb-1">Voice</div>
                 <select
                   className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
@@ -896,39 +866,6 @@ export default function App() {
                   )}
                 </select>
               </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label>
-                  <div className="text-sm text-zinc-300 mb-1">
-                    Speed ({speedRange.min.toFixed(1)}-{speedRange.max.toFixed(1)})
-                  </div>
-                  <input
-                    type="number"
-                    min={speedRange.min}
-                    max={speedRange.max}
-                    step={speedRange.step}
-                    className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                    value={speechSpeed}
-                    onChange={(e) =>
-                      setSpeechSpeed(clampFloat(Number(e.target.value), speedRange.min, speedRange.max))
-                    }
-                    disabled={!speechAvailable}
-                  />
-                </label>
-                <label>
-                  <div className="text-sm text-zinc-300 mb-1">Vol</div>
-                  <input
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-50 outline-none focus:ring-2 focus:ring-zinc-600"
-                    value={speechVolume}
-                    onChange={(e) => setSpeechVolume(Number(e.target.value))}
-                    disabled={!speechAvailable}
-                  />
-                </label>
-              </div>
             </div>
 
             <div className="mt-4 flex items-center gap-3 flex-wrap">
