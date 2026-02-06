@@ -43,13 +43,25 @@ type VoiceOption = {
 
 type TtsMode = "kokoro";
 
-const DEFAULT_VOICE_ID = "af_heart";
+const DEFAULT_VOICE_ID = "echo";
 const SPEED_DEFAULT = 1;
 const SPEED_MIN = 0.8;
 const SPEED_MAX = 1.2;
 const SPEED_STEP = 0.05;
 const DUCK_VOLUME = 0.05;
 const NORMAL_VOLUME = 0.4;
+
+// Access code key in localStorage
+const ACCESS_CODE_KEY = "knee-timer-access-code";
+
+// Browser-compatible SHA-256 hash (matches api/tts.js cache key format)
+async function sha256Hex(input: string): Promise<string> {
+  const encoded = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 // iOS requires audio elements to be created and "unlocked" during user gesture for full volume playback.
 // We create a single reusable element and keep it alive.
@@ -126,6 +138,17 @@ export default function App() {
   const [waitSeconds, setWaitSeconds] = useState<number>(0);
   const [isWaiting, setIsWaiting] = useState<boolean>(false);
   const [waitSecondsLeft, setWaitSecondsLeft] = useState<number>(0);
+
+  // Access code gate
+  const [accessCode, setAccessCode] = useState<string>(() => localStorage.getItem(ACCESS_CODE_KEY) || "");
+  const [accessCodeInput, setAccessCodeInput] = useState<string>("");
+  const [accessCodeError, setAccessCodeError] = useState<string>("");
+
+  // TTS muted banner (shown when both static + API fail)
+  const [ttsMuted, setTtsMuted] = useState<boolean>(false);
+
+  // Privacy modal
+  const [showPrivacy, setShowPrivacy] = useState<boolean>(false);
 
   // Personalization (kept internally, not exposed in UI)
   const [userName] = useState<string>("");
@@ -408,9 +431,27 @@ export default function App() {
   }
 
   async function fetchTtsBlob(text: string, voice: string, speed: number) {
+    // Try static pre-generated audio first (zero API cost)
+    try {
+      const hash = await sha256Hex(`${voice}|${speed.toFixed(2)}|${text}`);
+      const staticUrl = `/audio/${voice}-${speed.toFixed(2)}/${hash}.mp3`;
+      const staticRes = await fetch(staticUrl);
+      if (staticRes.ok) {
+        return await staticRes.blob();
+      }
+    } catch {
+      // Static fetch failed — fall through to API
+    }
+
+    // Fall back to /api/tts
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const code = localStorage.getItem(ACCESS_CODE_KEY);
+    if (code) {
+      headers["x-access-code"] = code;
+    }
     const res = await fetch("/api/tts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ text, voice, speed }),
     });
     if (!res.ok) {
@@ -558,7 +599,8 @@ export default function App() {
         // Only disable TTS after 3 consecutive failures
         if (ttsFailCountRef.current >= 3) {
           setSpeechEnabled(false);
-          ttsNoteRef.current = "OpenAI TTS unavailable.";
+          setTtsMuted(true);
+          ttsNoteRef.current = "Voice coaching temporarily unavailable.";
         }
       }
     })();
@@ -837,6 +879,73 @@ export default function App() {
           : "Every session brings you closer to freedom of movement.";
 
   const percentComplete = Math.round(progress * 100);
+
+  const [accessCodeLoading, setAccessCodeLoading] = useState(false);
+
+  function handleAccessCodeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const code = accessCodeInput.trim();
+    if (!code) {
+      setAccessCodeError("Please enter an access code.");
+      return;
+    }
+    setAccessCodeLoading(true);
+    setAccessCodeError("");
+    fetch("/api/verify-code", {
+      method: "POST",
+      headers: { "x-access-code": code },
+    })
+      .then((res) => {
+        if (res.ok) {
+          localStorage.setItem(ACCESS_CODE_KEY, code);
+          setAccessCode(code);
+        } else {
+          setAccessCodeError("Invalid access code. Please try again.");
+        }
+      })
+      .catch(() => {
+        setAccessCodeError("Could not verify code. Check your connection and try again.");
+      })
+      .finally(() => setAccessCodeLoading(false));
+  }
+
+  // Access code gate — show code entry screen if no code stored
+  if (!accessCode) {
+    return (
+      <div className="min-h-screen bg-warm-gradient grain-overlay font-[family-name:var(--font-body)] text-warmtext flex flex-col items-center justify-center p-4 selection:bg-warmgold/30">
+        <div className="relative z-10 w-full max-w-md">
+          <div className="text-center mb-8 animate-fade-in-up">
+            <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl text-warmcream tracking-tight leading-tight">
+              Knee Rehab
+              <span className="block text-warmgold">Companion</span>
+            </h1>
+            <p className="mt-3 text-warmmuted text-sm sm:text-base leading-relaxed max-w-xs mx-auto">
+              Enter the access code shared in the Facebook group to get started.
+            </p>
+          </div>
+          <form onSubmit={handleAccessCodeSubmit} className="panel-warm p-6 sm:p-8 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+            <label className="block">
+              <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Access code</div>
+              <input
+                type="text"
+                className="input-warm w-full text-lg"
+                value={accessCodeInput}
+                onChange={(e) => { setAccessCodeInput(e.target.value); setAccessCodeError(""); }}
+                placeholder="Enter code..."
+                autoFocus
+              />
+            </label>
+            {accessCodeError && (
+              <div className="mt-3 text-sm text-warmred">{accessCodeError}</div>
+            )}
+            <button type="submit" className="btn-primary w-full mt-5 text-base" disabled={accessCodeLoading}>
+              {accessCodeLoading ? "Verifying..." : "Continue"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-warm-gradient grain-overlay font-[family-name:var(--font-body)] text-warmtext flex flex-col items-center justify-center p-4 selection:bg-warmgold/30">
@@ -1153,14 +1262,64 @@ export default function App() {
           )}
         </div>
 
-        {/* ---- Disclaimer ---- */}
+        {/* ---- TTS Muted Banner ---- */}
+        {ttsMuted && (
+          <div className="panel-warm mt-4 p-4 animate-fade-in-up">
+            <div className="flex items-start gap-3">
+              <svg className="h-5 w-5 text-warmamber shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+              <div>
+                <p className="text-sm text-warmcream">Voice coaching is temporarily unavailable.</p>
+                <p className="text-xs text-warmmuted mt-1">The timer will continue without audio. Your session is unaffected.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ---- Disclaimer + Privacy ---- */}
         <div className="mt-6 text-center animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
           <p className="text-xs text-warmmuted/60 leading-relaxed max-w-sm mx-auto">
             If your session is extremely painful or worsening, follow your clinician's guidance.
             This timer is for encouragement, not medical advice.
           </p>
+          <button
+            className="mt-3 text-xs text-warmmuted/50 hover:text-warmmuted/80 transition-colors underline underline-offset-2"
+            onClick={() => setShowPrivacy(true)}
+          >
+            Privacy
+          </button>
         </div>
       </div>
+
+      {/* ---- Privacy Modal ---- */}
+      {showPrivacy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowPrivacy(false)}>
+          <div className="panel-warm w-full max-w-md p-6 sm:p-8 animate-fade-in-up max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-[family-name:var(--font-display)] text-xl text-warmcream mb-4">Privacy</h2>
+            <div className="space-y-3 text-sm text-warmmuted leading-relaxed">
+              <p>
+                <strong className="text-warmcream">Your videos never leave your device.</strong> They exist only in your browser's temporary memory and are erased when you close the tab.
+              </p>
+              <p>
+                <strong className="text-warmcream">No personal data is collected.</strong> No tracking. No cookies. No accounts. No analytics.
+              </p>
+              <p>
+                <strong className="text-warmcream">Voice coaching uses pre-recorded audio files.</strong> No data about you is sent to any server during normal use.
+              </p>
+              <p>
+                This app is open source &mdash; you can inspect the code at{" "}
+                <a href="https://github.com/Carboteiro/knee-timer" target="_blank" rel="noopener noreferrer" className="text-warmgold hover:text-warmamber underline underline-offset-2">
+                  GitHub
+                </a>.
+              </p>
+            </div>
+            <button className="btn-secondary w-full mt-5" onClick={() => setShowPrivacy(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

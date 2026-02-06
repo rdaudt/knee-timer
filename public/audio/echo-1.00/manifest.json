@@ -1,0 +1,458 @@
+{
+  "87c53354d3235eed7bd156977b0c5c21b626cd0e74ce484b506baab1b13756e0": {
+    "text": "Alright for physio. Let's start. You've got this. Keep going.",
+    "desc": "start"
+  },
+  "7f03fee347c510c2c00685c585d65c491675b7cfe441df05befd4910b4f5b3a8": {
+    "text": "Time. Amazing work. You finished with physio. Keep going. Keep going.",
+    "desc": "end"
+  },
+  "9222f8e20e3f62bcd43c00c8343c52f3213b4b094aeba4e0549642864f3ef55f": {
+    "text": "25 percent done. Your knee is warming up and responding - great pace.",
+    "desc": "milestone"
+  },
+  "f2b3045ce1e2929fffe4f51db17c1dea3afe5b1e1e101b1a777f0825565965b5": {
+    "text": "Halfway there. This is where real recovery happens - stay steady.",
+    "desc": "milestone"
+  },
+  "8f7264df99a02dd16ae8602e7ed091503cc9ff6e046a8e8e03698c826d636630": {
+    "text": "Three quarters done. You're pushing through the toughest part - incredible work.",
+    "desc": "milestone"
+  },
+  "5dabfdf6cb0130342b91a003e32a7142892196f80a00675e8b02dee9d7012d21": {
+    "text": "Ninety percent done. This final stretch is where your knee gains the most - fini...",
+    "desc": "milestone"
+  },
+  "dbe76baaa3ac67801078f0c76bd6ca387a293ae06391fec54fd317ddb8ec917f": {
+    "text": "Every rep you do now brings your knee closer to full freedom. Keep going with ph...",
+    "desc": "motivation-0"
+  },
+  "79e656b1308aad566bdebcf80076373e453889b4a4d503b60bc68ef8cfa71c31": {
+    "text": "This pain has purpose - it's clearing the path to walking with confidence again....",
+    "desc": "motivation-1"
+  },
+  "21cb33489e6d8826694681ec16263acf14ac107e42099710dbd96f9445148876": {
+    "text": "Your future mobility is being built in this exact moment. Keep going with physio...",
+    "desc": "motivation-2"
+  },
+  "5e5903b52441ccf53b34597bd6cacc35943da1e7726d9d902ecf2e293fb9a4a9": {
+    "text": "Each stretch is unlocking a little more of the life you want back. Keep going wi...",
+    "desc": "motivation-3"
+  },
+  "25d0ea6ac39d94a9a4dbfd9684b8c3283d518310db19e976fc477b77222ef0ee": {
+    "text": "Stay with it - this is how your knee regains trust in you. Keep going with physi...",
+    "desc": "motivation-4"
+  },
+  "928e93c21c0b9b3c2593fe78536885ac62d64ff2c3c1a0ac5e6cd87655e3ed99": {
+    "text": "You're rebuilding strength that will carry you for decades. Keep going with phys...",
+    "desc": "motivation-5"
+  },
+  "c3f40cda8e6cc4e4d1a8aecf122b3bfa7b963891471c31d18ff6b4b5265896fc": {
+    "text": "A few seconds of discomfort for a lifetime of movement - keep going. Keep going ...",
+    "desc": "motivation-6"
+  },
+  "f24fbb5074ac0c902e0b207e7cb01afdd3f904f19ad02cafa7e56133b68082dc": {
+    "text": "Your knee is relearning, and you're leading the way. Keep going with physio.",
+    "desc": "motivation-7"
+  },
+  "c8a21481b87446cda421f79603b105b2c0766284c9dff62a42e4435ea80509ef": {
+    "text": "This work restores stability, step by step. Keep going with physio.",
+    "desc": "motivation-8"
+  },
+  "ec75d45a84496fb67ab3f87e4a2f545c5c3145c9466045617833eff78c57cd58": {
+    "text": "Your future walks, hikes, and stairs are being made possible right now. Keep goi...",
+    "desc": "motivation-9"
+  },
+  "92c75610dceeba6916bbdbae835b1ce7a016cad4fea3360cd1e4c210b6ae48a3": {
+    "text": "Healing requires effort - and you're giving it. Keep going with physio.",
+    "desc": "motivation-10"
+  },
+  "5b0b736890b16648557643d1770320f24a178938cf41a9a3f670f0390d0d5933": {
+    "text": "Every stretch improves tomorrow's mobility. Keep going with physio. Keep going.",
+    "desc": "motivation-11"
+  },
+  "8511fd2d2fc1f02e264a8b4c0727e91738d8f9173584d555cbc4223c6e688b9f": {
+    "text": "Keep going - the knee needs this to fully recover. Keep going with physio.",
+    "desc": "motivation-12"
+  },
+  "7c10f0b41110e9ba1bfeae176135d605ed6e95b985f94b89cc0f90099039da63": {
+    "text": "This pain is temporary; the strength you gain is not. Keep going with physio.",
+    "desc": "motivation-13"
+  },
+  "e4a822949c5f39d8941c5214aff5680e41d662b11182dbb2860d8a0446f9845c": {
+    "text": "Imagine your future self moving freely - you're building that body now. Keep goi...",
+    "desc": "motivation-14"
+  },
+  "27e31a8bc41f697fcbc26cb92897561e10a53ec46e77338235fa34289e40978f": {
+    "text": "Your knee is responding, even if you can't feel it yet. Keep going with physio.",
+    "desc": "motivation-15"
+  },
+  "83f06daba455312823d18878ec3a18c7af4d7cd838297a039a6ad27d211be039": {
+    "text": "Slow progress is still progress - and it's adding up. Keep going with physio.",
+    "desc": "motivation-16"
+  },
+  "fd83d6127ccda9e50758cd4232a991bb1aef659e26fb5807c9b1c7f0faff5b81": {
+    "text": "You're reclaiming your independence with every second. Keep going with physio.",
+    "desc": "motivation-17"
+  },
+  "5280594354736b349eae1a96adb43c74412af891c128b3918922ec5dc65095ca": {
+    "text": "These reps are laying the foundation for pain-free movement. Keep going with phy...",
+    "desc": "motivation-18"
+  },
+  "d2b92623ae2e06391e526216a2bf84e9e0ce462fb632fcb6ec0f55bddf30726a": {
+    "text": "Flexibility returns with consistency - and you're showing up. Keep going with ph...",
+    "desc": "motivation-19"
+  },
+  "595d611d66b89c10030851bf803f59685f5634300204d7e5b9908ecef137f3fa": {
+    "text": "Keep steady - you're teaching your knee how to bend confidently again. Keep goin...",
+    "desc": "motivation-20"
+  },
+  "a3aee0ecf8b97dbe3e842190e4f4f65297a5f5589e7832a5f49b0d2989b71dfc": {
+    "text": "This is how you get back to doing everything you love. Keep going with physio.",
+    "desc": "motivation-21"
+  },
+  "f23ea88f8c086221fcfcef3190b676086bdab7c322e1c42ecbef7e2e378ba29f": {
+    "text": "Your persistence is rewiring strength into your joint. Keep going with physio.",
+    "desc": "motivation-22"
+  },
+  "18a7055f8b1b5acd321c97f5891639c3c7a3a6e41e8f9176bccd57a82f014456": {
+    "text": "Every motion helps reduce stiffness for the rest of the day. Keep going with phy...",
+    "desc": "motivation-23"
+  },
+  "3d7c3e0145b0dd6885c51411e5c282861b2822ea9e3e476fa946b460151895b9": {
+    "text": "You're helping your knee trust movement again. Keep going with physio.",
+    "desc": "motivation-24"
+  },
+  "da25870491e1413e1738b610908376c973e039b04272d6472e9e4b3c0f2890d2": {
+    "text": "Future walks, future steps, future adventures - all fueled by this work. Keep go...",
+    "desc": "motivation-25"
+  },
+  "b9ab054d95dc927ae56f466bccfff1d17ed521212e87e3e8720d9c4aa0381eba": {
+    "text": "Stay consistent - your knee heals through repetition. Keep going with physio.",
+    "desc": "motivation-26"
+  },
+  "d90188389c9539cce0e05c80d93cb587eb4ba26068f66c810e95083d6121b14b": {
+    "text": "Think long-term: this is how you protect your mobility for life. Keep going with...",
+    "desc": "motivation-27"
+  },
+  "b53737a2ca32eca661016a7c956b96691390df41d9329d38e6290c69adf4d074": {
+    "text": "Your knee is unlocking more range with every session. Keep going with physio.",
+    "desc": "motivation-28"
+  },
+  "5f6537642e272f7ef1f6a479cc6757408eee42bd9a06ea82cc41bc66c7b345f3": {
+    "text": "Painful doesn't mean harmful - this is constructive effort. Keep going with phys...",
+    "desc": "motivation-29"
+  },
+  "955ad375efba486fdafc6dae15905ef1c3890f567e3ef073079196a3b2f8f141": {
+    "text": "This minute strengthens your ability to stand tall and move strong. Keep going w...",
+    "desc": "motivation-30"
+  },
+  "e46a4ece7c066207ab484b04ff970b028257ee110e14fc23b7dbde7cdd28d625": {
+    "text": "You're rebuilding the foundation for an active future. Keep going with physio.",
+    "desc": "motivation-31"
+  },
+  "eb9358cd090d5632464f36806673503b0ff8596104cf5cd9c4798ce2d54668fb": {
+    "text": "Your knee appreciates every bit of movement you give it. Keep going with physio.",
+    "desc": "motivation-32"
+  },
+  "921cb3d1207be956ec390c0381a4b7cc7e7c0245c7f89d6d1d770fa2c3bcfb5f": {
+    "text": "These controlled motions restore confidence in your joint. Keep going with physi...",
+    "desc": "motivation-33"
+  },
+  "c7b74a8c76ffdcf85fcf1c4fb7e65b804c430b540f9395a3f836e7ffa45762fc": {
+    "text": "Keep going - you're creating a knee that supports your goals. Keep going with ph...",
+    "desc": "motivation-34"
+  },
+  "95503698c19a6d697b3a0e982a1cca82e5b0639e8f886e3eb83bdbb1081a259d": {
+    "text": "Every stretch gently reclaims mobility. Keep going with physio. Keep going.",
+    "desc": "motivation-35"
+  },
+  "98d1bb99f5a2585c05ba6384363ceae60877d916901f17fd90172b0175f24ad0": {
+    "text": "Your future self will look back and be grateful you stayed with this. Keep going...",
+    "desc": "motivation-36"
+  },
+  "bdd29623cfd8b670223ff5f127fd249712e44687749835da3bc2ecf8981dcf8b": {
+    "text": "This rehab is your bridge to full strength. Keep going with physio.",
+    "desc": "motivation-37"
+  },
+  "54ea3fd1b7a0e9bd7e554604bf646fbac4d87f58c0fe046a7d21e2c6fa4524d7": {
+    "text": "Consistency is your superpower - you're using it well. Keep going with physio.",
+    "desc": "motivation-38"
+  },
+  "bd0234a06d05be16182fd13c1480f522ed39d193c78e941407619fbaf7c64a0c": {
+    "text": "This work is reawakening muscles that protect your knee. Keep going with physio.",
+    "desc": "motivation-39"
+  },
+  "15bb088cb2115dcca8df1484c62600a3ef3bb511b4d0552e6cca52c58a502cf2": {
+    "text": "You're doing what's necessary, not what's easy. Keep going with physio.",
+    "desc": "motivation-40"
+  },
+  "1963603023a420e1ec7e6f09244d137e7113efe7d2b55eb7c06d8026c99b9ec4": {
+    "text": "Each rep strengthens the muscles that stabilize your knee. Keep going with physi...",
+    "desc": "motivation-41"
+  },
+  "4d234d4c9e79988ae7876ccd19a08bee27e6fee8fb8dac421750d293932c6c0d": {
+    "text": "You're proving your resilience with every second. Keep going with physio.",
+    "desc": "motivation-42"
+  },
+  "079cee6422c2a39141741aa49191d24a4e8212321a966a6e247992f3419c64a9": {
+    "text": "Rehab bends now mean easier bending later - stay with it. Keep going with physio...",
+    "desc": "motivation-43"
+  },
+  "ae78490c6ac3b321a2bef7ea5a3285c2f3d3a9037c05e2fd27cbc5fd22a61392": {
+    "text": "You're creating lasting strength, one slow rep at a time. Keep going with physio...",
+    "desc": "motivation-44"
+  },
+  "9fe7aca000502851bb41dff2be36422abf507a1d1ecac945f539255a0807c5d9": {
+    "text": "This effort adds years of active living to your future. Keep going with physio.",
+    "desc": "motivation-45"
+  },
+  "662fe2236b98268c7a32ba2ee928afe4c11f986c22ffcc80add68bebd4d60a68": {
+    "text": "Every controlled motion fights stiffness. Keep going with physio. Keep going.",
+    "desc": "motivation-46"
+  },
+  "100505981390fd6198fccb0c537afbfb76ad0da822bc350d8061b98cef41656c": {
+    "text": "Your commitment today gives you freedom tomorrow. Keep going with physio.",
+    "desc": "motivation-47"
+  },
+  "518db5d00621f7cdefa04effad797450b6c22c86ae0132ae1945ef04fefd1349": {
+    "text": "This session matters - it's a building block of recovery. Keep going with physio...",
+    "desc": "motivation-48"
+  },
+  "a1263e07b5b6b579d68088debc2c80c9eace03c07a23b05185d8dbb9a6ce9eaa": {
+    "text": "You're enhancing the balance and stability around your knee. Keep going with phy...",
+    "desc": "motivation-49"
+  },
+  "0925318e5787c097f833aaf3e4b237fab111fedcbfb4ab2dfe1140218986e8e1": {
+    "text": "Your knee is healing through your persistence. Keep going with physio.",
+    "desc": "motivation-50"
+  },
+  "622df7cad89a03c13496383fd6614a231b27812db39eb69584d144ba03ea063f": {
+    "text": "These movements tell your body it's safe to move again. Keep going with physio.",
+    "desc": "motivation-51"
+  },
+  "6278308bbb5a78c0f7b11f67845e02acfe131b9821a9be54b38edf49b37c1b21": {
+    "text": "The road to full recovery is paved with moments like this. Keep going with physi...",
+    "desc": "motivation-52"
+  },
+  "906818fd11e78d83efa6fa2415a5272907f46dca5dff0c2f79d2f8d38967bd44": {
+    "text": "Slow and steady makes the knee stronger than rushing ever could. Keep going with...",
+    "desc": "motivation-53"
+  },
+  "07379fbb27e5334468debcffb8664778930c3254dead42b4b80a61319408ec2d": {
+    "text": "You're restoring normal movement patterns - keep guiding your knee. Keep going w...",
+    "desc": "motivation-54"
+  },
+  "7a08eab80102d5a4c69cc3f26109e7a3d3ba6d06e7b659bb82c5e0d2f6de29b8": {
+    "text": "This is how you break through mobility plateaus. Keep going with physio.",
+    "desc": "motivation-55"
+  },
+  "21ccabee2bd6e4364014bfc92b6e24b16acc16eb9d611e8e316c53b70617e4b2": {
+    "text": "Every second strengthens the connection between your mind and your knee. Keep go...",
+    "desc": "motivation-56"
+  },
+  "159272a0eaecd6fe910f0e2c7d39d7cc4d7ded4cfb08320b9aaa0ae97d65c051": {
+    "text": "You're reclaiming your full stride. Keep going with physio. Keep going.",
+    "desc": "motivation-57"
+  },
+  "429c4bbade1698bfe97eb2bb071f4fd88f8f64b261f4dc9da954af0812f67f2d": {
+    "text": "Your knee is learning its full range again - you're helping it remember. Keep go...",
+    "desc": "motivation-58"
+  },
+  "8967b3db833fd5e51007da17c6c74ccde57b17fca4e3cb41ee3c732fddce167f": {
+    "text": "These reps make the difficult days easier. Keep going with physio.",
+    "desc": "motivation-59"
+  },
+  "0d6dfb902ebce0686acccf1a409d09e77be5d33853c1795a54f4f878fc6f4185": {
+    "text": "Your consistency is what transforms recovery. Keep going with physio.",
+    "desc": "motivation-60"
+  },
+  "2fb27c0271d303914fedfb7140c34332defbf7765967d2270737a94ef10ed8a0": {
+    "text": "You're laying the groundwork for pain-free steps. Keep going with physio.",
+    "desc": "motivation-61"
+  },
+  "6522c0b4c7c872c2fb283a35f59c9a947f892a3345b2ed9e45a69ee6778d7043": {
+    "text": "The effort you put in now will echo through the rest of your life. Keep going wi...",
+    "desc": "motivation-62"
+  },
+  "ead9ee28b929a4380bc115c4976e09534396062114b484d8420add41dca98807": {
+    "text": "Keep breathing - motion plus oxygen equals healing. Keep going with physio.",
+    "desc": "motivation-63"
+  },
+  "acd7b4e180d93e46030978c99264275875ede551591f5e6e31c74fade3635f30": {
+    "text": "Your knee will reward this moment of effort. Keep going with physio.",
+    "desc": "motivation-64"
+  },
+  "147905891de67ca9df6358a6b306525cca4a37adfa6576d524c90b3d37650983": {
+    "text": "This is the work that ensures you walk stronger next month. Keep going with phys...",
+    "desc": "motivation-65"
+  },
+  "2ec5f95183d5c43f6f4acf28123bfd9e672736d6f8690d8ced2c02ef41ecedb7": {
+    "text": "Push just enough - progress is built gently. Keep going with physio.",
+    "desc": "motivation-66"
+  },
+  "517c7db669cc97db6290f3b960624ddfd3c7539bdd17a8ee17cb363d5f79d815": {
+    "text": "Every controlled movement helps loosen the scar tissue. Keep going with physio.",
+    "desc": "motivation-67"
+  },
+  "c3fd55444d98b9357c9f7de142bcd2b2167dcc11756f75eb3835d1c54d56dd97": {
+    "text": "You're rebuilding coordination, bit by bit. Keep going with physio.",
+    "desc": "motivation-68"
+  },
+  "1659ab4492e8599153fefb25a1af46915d32fb6d0e08a77c829c381aa368170f": {
+    "text": "This stretch unlocks a little more freedom. Keep going with physio.",
+    "desc": "motivation-69"
+  },
+  "2606b0c456a25bf98e5f0014e1ce5c1eef3b4e3bcbe2d200bd49a08ac6b6781c": {
+    "text": "You're adding strength that supports every future step. Keep going with physio.",
+    "desc": "motivation-70"
+  },
+  "73da3c20276f0146463b65682b26147e37af146ed1d27614dc234b4c9ede6a7b": {
+    "text": "Keep at it - this is how you regain full function. Keep going with physio.",
+    "desc": "motivation-71"
+  },
+  "34983a5676dad58a2058be6cb03226e17220693dc92e04aee96eb30c10f00790": {
+    "text": "These seconds right now are part of your comeback story. Keep going with physio.",
+    "desc": "motivation-72"
+  },
+  "2cb4c84346d91154bc7069413632610867393269ca6a0842c5144a53ea1654b9": {
+    "text": "Your knee is capable - you're helping it get there. Keep going with physio.",
+    "desc": "motivation-73"
+  },
+  "e3c8640c73ce00a69ad49ade3e5b389f03b959e9b3d55ff0008197733df06fe2": {
+    "text": "You're doing the hard part that most people avoid. Keep going with physio.",
+    "desc": "motivation-74"
+  },
+  "9e156c2dfa3945b8558c1471547bba03e6f0bfbb5e3cc3f24fd316fef98ad9f7": {
+    "text": "This is strength training for a lifetime of movement. Keep going with physio.",
+    "desc": "motivation-75"
+  },
+  "51445c6abeb15513d7b0043dc9e5b4da99710c963de78db7ab76f533d0451c56": {
+    "text": "Every rep is an investment in your future mobility. Keep going with physio.",
+    "desc": "motivation-76"
+  },
+  "90f961d343f87805ddd3ec7c703f3562506f1cddefe5ab5baf020cb34898163d": {
+    "text": "Your body is healing - stay with it. Keep going with physio.",
+    "desc": "motivation-77"
+  },
+  "fd9b2c7255734a182b1b315586f297380dbad56448c468052c1c7add357b8e2c": {
+    "text": "This moment of effort reduces future moments of pain. Keep going with physio.",
+    "desc": "motivation-78"
+  },
+  "275217313421f7b0bf9947b71513a4ad1f56e901c9f5d304c8bada0502172746": {
+    "text": "Your knee is adapting more than you realize. Keep going with physio.",
+    "desc": "motivation-79"
+  },
+  "c5a48451da5165f8d9be4f20fb7bfc414ec82de3da3af9208efbd352335d5d84": {
+    "text": "You're getting stronger precisely where you need it. Keep going with physio.",
+    "desc": "motivation-80"
+  },
+  "7ec3bffda484174e93a4d78a38993b24bafbc17826c7270bf9fb19bfdac6639b": {
+    "text": "Stay the course - healing takes patience and power. Keep going with physio.",
+    "desc": "motivation-81"
+  },
+  "5605c2317288ad47ae12eb47beea6b72cc75036de168187c0ca470a0f1a36cd1": {
+    "text": "You're showing real courage by doing this. Keep going with physio.",
+    "desc": "motivation-82"
+  },
+  "6148b27d761d77e272c2b6a2a64b537f471cff473520021752fa07741841f5c4": {
+    "text": "Every motion increases the fluidity of your joint. Keep going with physio.",
+    "desc": "motivation-83"
+  },
+  "28bd0156d1ef599deb431cf2892f6e3a3efc0167900e88d386888098dc711bd4": {
+    "text": "The more consistent you are, the smoother recovery becomes. Keep going with phys...",
+    "desc": "motivation-84"
+  },
+  "caf9981796108f308cd10051ff7c46884e9e66dcc31497ceba68bffab436795c": {
+    "text": "You're teaching your knee to trust movement again. Keep going with physio.",
+    "desc": "motivation-85"
+  },
+  "b61545f58f46d1ccee9c3f6fd3822006adeb7ca7d05217bedb73e7e99d18b75a": {
+    "text": "This effort brings you closer to walking without hesitation. Keep going with phy...",
+    "desc": "motivation-86"
+  },
+  "54c67e8122133eca507aad2574912ea6ce5d1ae9da5449cb78e23cbe1f7f32be": {
+    "text": "Your knee is grateful for this moment. Keep going with physio.",
+    "desc": "motivation-87"
+  },
+  "6a5a46e15c0b7e34658c6946348b000c7d9c4331a490faafd5f052d1ee895cab": {
+    "text": "Recovery isn't linear - but your commitment is. Keep going with physio.",
+    "desc": "motivation-88"
+  },
+  "170d2baf1a2182ac8456f967e24eb09c44a92081fd1aade143616286d852c45e": {
+    "text": "This work is restoring your natural strength. Keep going with physio.",
+    "desc": "motivation-89"
+  },
+  "5ca85c9b6377e3fa467b85c9864b6d485cfee74c34984ce36b673cbd635f2145": {
+    "text": "You're rebuilding the ability to live actively and fully. Keep going with physio...",
+    "desc": "motivation-90"
+  },
+  "74100516e864f0013fe3c24bd4c0137447db65584c6490cfaa290fed576ad4f1": {
+    "text": "Every second pushes stiffness further away. Keep going with physio.",
+    "desc": "motivation-91"
+  },
+  "f596301da388288dc982dfb2fdbf38d13c27fccf66f37eb714b36dcd0cd48143": {
+    "text": "You're doing the essential work that leads to a full recovery. Keep going with p...",
+    "desc": "motivation-92"
+  },
+  "b778ff4628abad8306d8f955f37840bc7b956f430ff53f16280de235810413c0": {
+    "text": "You're giving yourself the gift of future mobility. Keep going with physio.",
+    "desc": "motivation-93"
+  },
+  "913386b5bede4ace32e92ad6e3aac5c2fc80b16bd1f048e55b340c973c9d706c": {
+    "text": "This session matters more than you know. Keep going with physio.",
+    "desc": "motivation-94"
+  },
+  "156b87758759a9a7605fbfa70716ef56c77d2be7c5e134ac5bf4a911704c61d2": {
+    "text": "Strong knees are built with moments like this. Keep going with physio.",
+    "desc": "motivation-95"
+  },
+  "1a1d29adb1674e2106c7ba31112b9972fba5c6d23819b354d69087ddbaa9c2fb": {
+    "text": "Your future freedom of movement starts right here. Keep going with physio.",
+    "desc": "motivation-96"
+  },
+  "b222529de96099b59784b4490775e1e473a08de6f95978be80b640223a2dc043": {
+    "text": "Keep going - future you is cheering for you. Keep going with physio.",
+    "desc": "motivation-97"
+  },
+  "24ce19b399909ed387fe0193280acd1cdaa2c9fad4002d17e3e2295967cc71e9": {
+    "text": "Each controlled breath helps you stay steady through the tough parts. Keep going...",
+    "desc": "motivation-98"
+  },
+  "989216c325927b45da77396a4c4138a31da06f02ace936d9cd84c9788eb6727c": {
+    "text": "This is how you earn back comfort on stairs and slopes. Keep going with physio.",
+    "desc": "motivation-99"
+  },
+  "c21330d18d814812c9cf5a0e9c826ef95d250872ecc72f8be79098a8104a2f42": {
+    "text": "You're restoring range of motion that makes daily life easier. Keep going with p...",
+    "desc": "motivation-100"
+  },
+  "5c1e4f31196898c596f24d2468499e17a3b17a63f0e279d85c49c19da34d8f72": {
+    "text": "Today's effort supports tomorrow's stability. Keep going with physio. Keep going...",
+    "desc": "motivation-101"
+  },
+  "8590588046c6fb5a635ce7b7bc52c4aa860aee89dff0b6d9f2d088f0d021515b": {
+    "text": "Your knee is getting smoother with repetition - keep guiding it. Keep going with...",
+    "desc": "motivation-102"
+  },
+  "911ac89fd51b93ab5672de9d8fe9d5bca13244a778da2b6b81da321b688c2b36": {
+    "text": "You're building the strength that protects your joint long-term. Keep going with...",
+    "desc": "motivation-103"
+  },
+  "b2d98ee1e7bb54a4366b1b070aebfe841000ec9edb1777b8a032bc5a8e1b7e90": {
+    "text": "This session is an investment in a more active future. Keep going with physio.",
+    "desc": "motivation-104"
+  },
+  "053e098e2af6786ce375d8d78da23465db7c825dacd59b4d9242e680a2e4eca7": {
+    "text": "The hard part is showing up - and you're doing it. Keep going with physio.",
+    "desc": "motivation-105"
+  },
+  "df22d1172c43bf8ea4b9988df28ae57f271704a366984ae90c3dc8b4f4002e74": {
+    "text": "You're training for the life you want to live again. Keep going with physio.",
+    "desc": "motivation-106"
+  },
+  "0292ba4ad37a8e5ce88b7b80a2157df321942107cd787a20e5564b8a33acf48b": {
+    "text": "You're closer than you think - keep going. Keep going with physio.",
+    "desc": "motivation-107"
+  }
+}
