@@ -24,7 +24,7 @@ import {
   pickMotivation,
   type PrefetchLine,
 } from "./ttsUtils";
-import backMusicUrl from "./assets/backmusic.mp3";
+import backMusicUrl from "./assets/backmusic-x.mp3";
 import {
   cameraErrorMessage,
   createRecorder,
@@ -395,7 +395,7 @@ export default function App() {
     }
   }
 
-  async function playBlob(blob: Blob) {
+  async function playBlob(blob: Blob): Promise<void> {
     stopAudio();
     const url = URL.createObjectURL(blob);
     audioUrlRef.current = url;
@@ -404,25 +404,31 @@ export default function App() {
     audio.src = url;
     audio.volume = clampFloat(speechVolume, 0, 1);
     audioRef.current = audio;
-    audio.onended = () => {
-      if (audioRef.current === audio) audioRef.current = null;
-      if (audioUrlRef.current === url) {
-        URL.revokeObjectURL(url);
-        audioUrlRef.current = null;
-      }
-      restoreBackgroundMusic();
-    };
-    audio.onerror = () => {
-      if (audioUrlRef.current === url) {
-        URL.revokeObjectURL(url);
-        audioUrlRef.current = null;
-      }
-      restoreBackgroundMusic();
-    };
-    // Duck first, then wait for the ramp to complete before playing TTS
-    duckBackgroundMusic();
-    await new Promise((r) => setTimeout(r, 120));
-    await audio.play();
+
+    return new Promise<void>((resolve, reject) => {
+      audio.onended = () => {
+        if (audioRef.current === audio) audioRef.current = null;
+        if (audioUrlRef.current === url) {
+          URL.revokeObjectURL(url);
+          audioUrlRef.current = null;
+        }
+        restoreBackgroundMusic();
+        resolve();
+      };
+      audio.onerror = () => {
+        if (audioUrlRef.current === url) {
+          URL.revokeObjectURL(url);
+          audioUrlRef.current = null;
+        }
+        restoreBackgroundMusic();
+        resolve(); // treat playback error as "speech finished"
+      };
+      // Duck first, then wait for the ramp to complete before playing TTS
+      duckBackgroundMusic();
+      setTimeout(() => {
+        audio.play().catch(reject);
+      }, 120);
+    });
   }
 
   function makeClientCacheKey(text: string, voice: string, speed: number) {
@@ -702,7 +708,6 @@ export default function App() {
     lastSpokenRef.current = null;
     stopSpeech();
     cancelPrefetch();
-    startBackgroundMusic();
 
     if (speechEnabled && ttsMode === "kokoro") {
       const lines = buildPrefetchLines(startSeconds, activity);
@@ -710,7 +715,22 @@ export default function App() {
     }
 
     if (speechEnabled) {
-      speakWithSettings(buildStartLine());
+      void (async () => {
+        try {
+          await speakKokoro(buildStartLine());
+          ttsFailCountRef.current = 0;
+        } catch {
+          ttsFailCountRef.current += 1;
+          if (ttsFailCountRef.current >= 3) {
+            setSpeechEnabled(false);
+            setTtsMuted(true);
+            ttsNoteRef.current = "Voice coaching temporarily unavailable.";
+          }
+        }
+        startBackgroundMusic();
+      })();
+    } else {
+      startBackgroundMusic();
     }
 
     // Auto-start camera recording if enabled
@@ -727,10 +747,10 @@ export default function App() {
         const next = prev - 1;
 
         if (next <= 0) {
+          stopBackgroundMusic();
           if (speechEnabled) {
             speakWithSettings(buildCongratsLine());
           }
-          stopBackgroundMusic();
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
@@ -817,10 +837,10 @@ export default function App() {
         const next = prev - 1;
 
         if (next <= 0) {
+          stopBackgroundMusic();
           if (speechEnabled) {
             speakWithSettings(buildCongratsLine());
           }
-          stopBackgroundMusic();
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);

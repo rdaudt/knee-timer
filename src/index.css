@@ -1,1 +1,269 @@
 @import "tailwindcss";
+
+@theme {
+  --color-warmblack: #1a1512;
+  --color-warmdeep: #231e19;
+  --color-warmpanel: #2c2520;
+  --color-warmgold: #c8956c;
+  --color-warmamber: #e8a96a;
+  --color-warmcream: #f5e6d3;
+  --color-warmtext: #ede0d4;
+  --color-warmmuted: #9a8b7a;
+  --color-warmhighlight: #d4a574;
+  --color-warmsuccess: #7cb87c;
+  --color-warmsuccessglow: #5a9e5a;
+  --color-warmred: #c75d5d;
+  --color-warmredglow: #a04040;
+  --color-warmborder: #3d342c;
+  --color-warmborderfaint: #302820;
+
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'Source Sans 3', sans-serif;
+}
+
+/* ---- Background grain overlay ---- */
+.grain-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ---- Breathing animation for active timer ---- */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes breathe-ring {
+  0%, 100% { filter: drop-shadow(0 0 8px var(--color-warmgold)); }
+  50% { filter: drop-shadow(0 0 20px var(--color-warmamber)); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes shimmer-text {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes celebration-burst {
+  0% { transform: scale(0.9); opacity: 0; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.animate-breathe-ring {
+  animation: breathe-ring 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.animate-celebration {
+  animation: celebration-burst 0.6s ease-out forwards;
+}
+
+/* ---- Circular progress ring ---- */
+.progress-ring-track {
+  stroke: var(--color-warmborder);
+  fill: none;
+  stroke-linecap: round;
+}
+
+.progress-ring-fill {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease-out;
+  filter: drop-shadow(0 0 6px var(--color-warmgold));
+}
+
+/* ---- Custom scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-warmdeep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-warmborder);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-warmmuted);
+}
+
+/* ---- Shimmer text for milestones ---- */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-warmtext) 0%,
+    var(--color-warmamber) 40%,
+    var(--color-warmgold) 60%,
+    var(--color-warmtext) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-text 3s linear infinite;
+}
+
+/* ---- Warm gradient backgrounds ---- */
+.bg-warm-gradient {
+  background: radial-gradient(
+    ellipse 120% 80% at 50% 0%,
+    #2c2018 0%,
+    var(--color-warmblack) 70%
+  );
+}
+
+.bg-warm-glow {
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(200, 149, 108, 0.08) 0%,
+    transparent 60%
+  );
+}
+
+/* ---- Button styles ---- */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-warmgold), var(--color-warmhighlight));
+  color: var(--color-warmblack);
+  font-weight: 600;
+  border-radius: 14px;
+  padding: 10px 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 12px rgba(200, 149, 108, 0.2);
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 20px rgba(200, 149, 108, 0.35);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(200, 149, 108, 0.15);
+}
+
+.btn-secondary {
+  background: var(--color-warmpanel);
+  color: var(--color-warmtext);
+  font-weight: 600;
+  border-radius: 14px;
+  padding: 10px 24px;
+  border: 1px solid var(--color-warmborder);
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: var(--color-warmborder);
+  border-color: var(--color-warmmuted);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-warmmuted);
+  font-weight: 500;
+  border-radius: 14px;
+  padding: 10px 24px;
+  border: 1px solid var(--color-warmborderfaint);
+  transition: all 0.2s ease;
+}
+.btn-ghost:hover {
+  color: var(--color-warmtext);
+  border-color: var(--color-warmborder);
+  background: rgba(44, 37, 32, 0.5);
+}
+
+/* ---- Wait time selector ---- */
+.wait-btn {
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  color: var(--color-warmmuted);
+  background: transparent;
+}
+.wait-btn:hover {
+  color: var(--color-warmtext);
+}
+.wait-btn.active {
+  color: var(--color-warmblack);
+  background: var(--color-warmgold);
+  box-shadow: 0 0 12px rgba(200, 149, 108, 0.25);
+}
+
+/* ---- Input field styling ---- */
+.input-warm {
+  background: var(--color-warmblack);
+  border: 1px solid var(--color-warmborder);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--color-warmtext);
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-warm:focus {
+  border-color: var(--color-warmgold);
+  box-shadow: 0 0 0 3px rgba(200, 149, 108, 0.12);
+}
+
+/* ---- Select dropdown ---- */
+.select-warm {
+  background: var(--color-warmblack);
+  border: 1px solid var(--color-warmborder);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--color-warmtext);
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%239a8b7a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+.select-warm:focus {
+  border-color: var(--color-warmgold);
+}
+
+/* ---- Card panel ---- */
+.panel-warm {
+  background: rgba(44, 37, 32, 0.55);
+  border: 1px solid var(--color-warmborder);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+}
+
+/* ---- Disabled state ---- */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
