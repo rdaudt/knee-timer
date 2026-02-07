@@ -152,6 +152,15 @@ export function padShortUtterance(text: string) {
   return result;
 }
 
+export function shuffleArray<T>(arr: T[]): T[] {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function pickMotivation(i: number) {
   return MOTIVATION_BANK[i % MOTIVATION_BANK.length];
 }
@@ -223,7 +232,8 @@ export function computeMilestones(totalSeconds: number): Milestone[] {
   ];
 }
 
-export function buildPrefetchLines(totalSeconds: number, activity: string): PrefetchLine[] {
+export function buildPrefetchLines(totalSeconds: number, activity: string, motivationBank?: string[]): PrefetchLine[] {
+  const bank = motivationBank || MOTIVATION_BANK;
   const lines: PrefetchLine[] = [];
   const milestones = computeMilestones(totalSeconds);
   const milestoneSet = new Set(milestones.map((m) => m.elapsed));
@@ -237,7 +247,8 @@ export function buildPrefetchLines(totalSeconds: number, activity: string): Pref
   for (let elapsed = 0; elapsed < totalSeconds; elapsed += 30) {
     if (elapsed === 0 && totalSeconds % 30 !== 0) continue;
     if (milestoneSet.has(elapsed)) continue;
-    const base = pickMotivation(Math.floor(elapsed / 30));
+    const idx = Math.floor(elapsed / 30);
+    const base = bank[idx % bank.length];
     lines.push({ key: `t${elapsed}`, text: buildMotivationLine(base, activity) });
   }
 

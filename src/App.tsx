@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_MINUTES,
+  MOTIVATION_BANK,
   buildCongratsLine,
   buildMotivationLine,
   buildPrefetchLines,
@@ -21,7 +22,7 @@ import {
   computeMilestones,
   formatMMSS,
   padShortUtterance,
-  pickMotivation,
+  shuffleArray,
   type PrefetchLine,
 } from "./ttsUtils";
 import backMusicUrl from "./assets/backmusic-x.mp3";
@@ -171,6 +172,7 @@ export default function App() {
   const ttsCacheRef = useRef<Map<string, Blob>>(new Map());
   const ttsInFlightRef = useRef<Map<string, Promise<Blob>>>(new Map());
   const prefetchIdRef = useRef<number>(0);
+  const shuffledBankRef = useRef<string[]>(MOTIVATION_BANK);
   const speechEnabledRef = useRef<boolean>(speechEnabled);
   const ttsModeRef = useRef<TtsMode>(ttsMode);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -627,6 +629,9 @@ export default function App() {
     // Never speak at 0:00 (reserved for congratulations)
     if (currentSecondsLeft === 0) return;
 
+    // Never speak at the very start (reserved for START_BANK message)
+    if (currentSecondsLeft === totalSecondsRef.current) return;
+
     // Use refs to get current values (avoids stale closure in interval callbacks)
     const ts = totalSecondsRef.current;
     const ms = milestonesRef.current;
@@ -647,7 +652,8 @@ export default function App() {
 
     lastSpokenRef.current = currentSecondsLeft;
     const elapsed30 = Math.floor(elapsedSeconds / 30);
-    const base = pickMotivation(elapsed30);
+    const bank = shuffledBankRef.current;
+    const base = bank[elapsed30 % bank.length];
     speakWithSettings(buildMotivationLine(base, activity));
   }
 
@@ -710,7 +716,7 @@ export default function App() {
     cancelPrefetch();
 
     if (speechEnabled && ttsMode === "kokoro") {
-      const lines = buildPrefetchLines(startSeconds, activity);
+      const lines = buildPrefetchLines(startSeconds, activity, shuffledBankRef.current);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
@@ -766,6 +772,9 @@ export default function App() {
   }
 
   function start() {
+    // Shuffle motivation bank once per session so each run has a unique order
+    shuffledBankRef.current = shuffleArray(MOTIVATION_BANK);
+
     // Silently unlock AudioContext and TTS audio element while we still have
     // user-gesture context. startTimer() fires from setTimeout inside
     // setInterval which is no longer a gesture, so browsers would block
@@ -780,7 +789,7 @@ export default function App() {
     // Prefetch TTS lines during the wait so audio blobs are cached and ready
     if (speechEnabled && ttsMode === "kokoro") {
       const mins = clampInt(parseInt(minutesInput, 10), 1, 15);
-      const lines = buildPrefetchLines(mins * 60, activity);
+      const lines = buildPrefetchLines(mins * 60, activity, shuffledBankRef.current);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
@@ -816,7 +825,7 @@ export default function App() {
     setIsRunning(true);
 
     if (speechEnabled && ttsMode === "kokoro") {
-      const lines = buildPrefetchLines(totalSeconds, activity);
+      const lines = buildPrefetchLines(totalSeconds, activity, shuffledBankRef.current);
       void prefetchLines(lines, voiceId, clampFloat(speechSpeed, speedRange.min, speedRange.max));
     }
 
