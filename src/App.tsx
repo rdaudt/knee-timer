@@ -1029,7 +1029,7 @@ export default function App() {
           {!isRunning && !isWaiting && (
             <div className="mt-8 space-y-5 animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
               {/* Duration + Wait */}
-              <div className="flex items-end gap-4 flex-wrap">
+              <div className="flex items-start gap-4 flex-wrap">
                 <label className="flex-1 min-w-[140px]">
                   <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Duration</div>
                   <input
