@@ -766,16 +766,16 @@ export default function App() {
   }
 
   function start() {
-    if (waitSeconds === 0) {
-      startTimer();
-      return;
-    }
-
     // Silently unlock AudioContext and TTS audio element while we still have
     // user-gesture context. startTimer() fires from setTimeout inside
     // setInterval which is no longer a gesture, so browsers would block
     // AudioContext creation and audio.play() without this.
     unlockAudio();
+
+    if (waitSeconds === 0) {
+      startTimer();
+      return;
+    }
 
     // Prefetch TTS lines during the wait so audio blobs are cached and ready
     if (speechEnabled && ttsMode === "kokoro") {
