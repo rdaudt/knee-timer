@@ -34,14 +34,6 @@ import {
   requestCamera,
 } from "./cameraUtils";
 
-type VoiceOption = {
-  id: string;
-  label: string;
-  lang: string;
-  gender: "F" | "M";
-  grade: string;
-};
-
 type TtsMode = "kokoro";
 
 const DEFAULT_VOICE_ID = "echo";
@@ -159,7 +151,6 @@ export default function App() {
   const [speechSpeed, setSpeechSpeed] = useState<number>(SPEED_DEFAULT);
   const [speechVolume] = useState<number>(1);
   const [voiceId, setVoiceId] = useState<string>(DEFAULT_VOICE_ID);
-  const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>([]);
   const [speedRange, setSpeedRange] = useState({ min: SPEED_MIN, max: SPEED_MAX, step: SPEED_STEP });
   const [ttsMode, setTtsMode] = useState<TtsMode>("kokoro");
   const ttsNoteRef = useRef<string>("");
@@ -218,13 +209,12 @@ export default function App() {
         const res = await fetch("/api/voices");
         if (!res.ok) throw new Error(`voice load failed: ${res.status}`);
         const data = (await res.json()) as {
-          voices: VoiceOption[];
+          voices: { id: string }[];
           defaultVoiceId: string;
           speed: { min: number; max: number; step: number; recommended: number };
         };
         if (cancelled) return;
         const voices = Array.isArray(data.voices) ? data.voices : [];
-        setVoiceOptions(voices);
         if (data.speed) {
           const min = data.speed.min ?? SPEED_MIN;
           const max = data.speed.max ?? SPEED_MAX;
@@ -243,7 +233,6 @@ export default function App() {
         ttsNoteRef.current = "";
       } catch {
         if (cancelled) return;
-        setVoiceOptions([]);
         setSpeechEnabled(false);
         ttsNoteRef.current = "OpenAI TTS unavailable.";
       }
@@ -889,8 +878,6 @@ export default function App() {
     if (mediaRecorderRef.current?.state === "recording") stopRecording();
   }
 
-  const speechAvailable = ttsMode === "kokoro";
-
   // Status helpers for UI
   const isPaused = !isRunning && !isWaiting && !isFinished && secondsLeft > 0 && secondsLeft !== totalSeconds;
   const isReady = !isRunning && !isWaiting && !isFinished && secondsLeft === totalSeconds;
@@ -1140,44 +1127,6 @@ export default function App() {
               </button>
             </div>
           )}
-        </div>
-
-        {/* ---- Voice Settings ---- */}
-        <div className="panel-warm mt-4 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-          <div className="p-5">
-            <div className="flex items-center gap-3 flex-wrap">
-              <label className="flex-1 min-w-[160px]">
-                <div className="text-xs text-warmmuted uppercase tracking-wider mb-2">Coach voice</div>
-                <select
-                  className="select-warm w-full"
-                  value={voiceId}
-                  onChange={(e) => setVoiceId(e.target.value)}
-                  disabled={ttsMode !== "kokoro" || voiceOptions.length === 0}
-                >
-                  {voiceOptions.length === 0 ? (
-                    <option value={voiceId}>Loading voices...</option>
-                  ) : (
-                    voiceOptions.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label} ({v.lang} {v.gender}, {v.grade})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </label>
-              <div className="self-end">
-                <button
-                  className="btn-ghost text-sm"
-                  onClick={() => {
-                    speakWithSettings(buildMotivationLine("Preview: You're doing great. Keep going.", activity));
-                  }}
-                  disabled={!speechAvailable || !speechEnabled}
-                >
-                  Test voice
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* ---- Camera Section ---- */}
