@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { trackEvent } from "./analytics";
 import {
   DEFAULT_MINUTES,
   MOTIVATION_BANK,
@@ -172,6 +173,9 @@ export default function App() {
   const bgGainNodeRef = useRef<GainNode | null>(null);
   const bgSourceConnectedRef = useRef<boolean>(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const isRunningRef = useRef<boolean>(false);
+  const secondsLeftRef = useRef<number>(0);
+  const analyticsOpenFiredRef = useRef<boolean>(false);
 
   // Camera (dev-only)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -266,6 +270,37 @@ export default function App() {
   useEffect(() => {
     ttsModeRef.current = ttsMode;
   }, [ttsMode]);
+
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
+  useEffect(() => {
+    secondsLeftRef.current = secondsLeft;
+  }, [secondsLeft]);
+
+  // Fire app_open once when the access gate is passed (covers returning users and fresh verifications)
+  useEffect(() => {
+    if (accessCode && !analyticsOpenFiredRef.current) {
+      analyticsOpenFiredRef.current = true;
+      trackEvent("app_open");
+    }
+  }, [accessCode]);
+
+  // session_abandon on tab/browser close while timer is running
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!isRunningRef.current) return;
+      const elapsed = totalSecondsRef.current - secondsLeftRef.current;
+      if (elapsed <= 0) return;
+      trackEvent("session_abandon", {
+        durationMin: totalSecondsRef.current / 60,
+        completionPct: Math.round((elapsed / totalSecondsRef.current) * 100),
+      });
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   // Screen wake lock — keep display on while timer or prep countdown is active
   useEffect(() => {
@@ -740,6 +775,12 @@ export default function App() {
     setSecondsLeft(startSeconds);
     setIsFinished(false);
     setIsRunning(true);
+    trackEvent("session_start", {
+      durationMin: mins,
+      prepTimeSec: waitSeconds,
+      speechOn: speechEnabled,
+      cameraOn: !!cameraStream,
+    });
 
     lastSpokenRef.current = null;
     stopSpeech();
@@ -790,6 +831,11 @@ export default function App() {
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
+          trackEvent("session_complete", {
+            durationMin: totalSecondsRef.current / 60,
+            completionPct: 100,
+            speechOn: speechEnabledRef.current,
+          });
           // Stop camera recording when timer finishes
           if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
@@ -883,6 +929,11 @@ export default function App() {
           clearIntervalIfAny();
           setIsRunning(false);
           setIsFinished(true);
+          trackEvent("session_complete", {
+            durationMin: totalSecondsRef.current / 60,
+            completionPct: 100,
+            speechOn: speechEnabledRef.current,
+          });
           // Stop camera recording when timer finishes
           if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
@@ -910,6 +961,14 @@ export default function App() {
     setIsWaiting(false);
     setWaitSecondsLeft(0);
     pause();
+    if (secondsLeft < durationMinutes * 60) {
+      const elapsed = durationMinutes * 60 - secondsLeft;
+      trackEvent("session_abandon", {
+        durationMin: durationMinutes,
+        completionPct: Math.round((elapsed / (durationMinutes * 60)) * 100),
+        speechOn: speechEnabled,
+      });
+    }
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);
     lastSpokenRef.current = null;
@@ -1321,7 +1380,7 @@ export default function App() {
                 <strong className="text-warmcream">Your videos never leave your device.</strong> They exist only in your browser's temporary memory and are erased when you close the tab.
               </p>
               <p>
-                <strong className="text-warmcream">No personal data is collected.</strong> No tracking. No cookies. No accounts. No analytics.
+                <strong className="text-warmcream">Anonymous session statistics are collected.</strong> We record when sessions start, complete, or are abandoned — no names, emails, or device fingerprints. Your location is approximated to city/country only. No IP addresses are stored.
               </p>
               <p>
                 <strong className="text-warmcream">Voice coaching uses pre-recorded audio files.</strong> No data about you is sent to any server during normal use.
