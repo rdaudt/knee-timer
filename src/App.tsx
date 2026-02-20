@@ -171,6 +171,7 @@ export default function App() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const bgGainNodeRef = useRef<GainNode | null>(null);
   const bgSourceConnectedRef = useRef<boolean>(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Camera (dev-only)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -265,6 +266,46 @@ export default function App() {
   useEffect(() => {
     ttsModeRef.current = ttsMode;
   }, [ttsMode]);
+
+  // Screen wake lock — keep display on while timer or prep countdown is active
+  useEffect(() => {
+    const active = isRunning || isWaiting;
+
+    const requestLock = async () => {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch {
+        // Device denied or API unavailable — degrade silently
+      }
+    };
+
+    const releaseLock = async () => {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+
+    if (active) {
+      void requestLock();
+    } else {
+      void releaseLock();
+    }
+
+    // Re-acquire after returning from background (browser auto-releases on hide)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && active) {
+        void requestLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      void releaseLock();
+    };
+  }, [isRunning, isWaiting]);
 
   // Camera cleanup
   useEffect(() => {
