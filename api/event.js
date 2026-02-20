@@ -19,11 +19,11 @@ function parsePlatform(ua) {
 }
 
 function parseBrowser(ua) {
-  // Order matters: Chrome UA also contains "Safari", so check Chrome first
+  // Order matters: Edge UA contains both "Edg" and "Chrome"/"Safari" tokens
+  if (/edg/i.test(ua)) return "edge";
   if (/chrome|chromium|crios/i.test(ua)) return "chrome";
   if (/firefox|fxios/i.test(ua)) return "firefox";
   if (/safari/i.test(ua)) return "safari";
-  if (/edg/i.test(ua)) return "edge";
   return "other";
 }
 
