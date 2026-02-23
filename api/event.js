@@ -51,9 +51,9 @@ export default async function handler(req, res) {
   }
 
   const body = parseJsonBody(req) || {};
-  const { type, device_id, durationMin, prepTimeSec, speechOn, cameraOn, completionPct } = body;
+  const { type, durationMin, prepTimeSec, speechOn, cameraOn, completionPct } = body;
 
-  if (!type || typeof type !== "string" || !device_id || typeof device_id !== "string") {
+  if (!type || typeof type !== "string") {
     return res.status(400).end();
   }
 
@@ -76,7 +76,6 @@ export default async function handler(req, res) {
   try {
     const { error } = await getSupabase().from("events").insert({
       type,
-      device_id,
       duration_min:   durationMin   != null ? Number(durationMin)   : null,
       prep_time_sec:  prepTimeSec   != null ? Number(prepTimeSec)   : null,
       speech_on:      speechOn      != null ? Boolean(speechOn)     : null,
