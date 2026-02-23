@@ -45,10 +45,8 @@ Server-side enrichment (from Vercel headers, never sent by client):
 - City, region, country from `x-vercel-ip-city/country/region` headers (free on Vercel)
 - Platform (mobile/desktop/tablet) and browser parsed from User-Agent
 
-Anonymous device ID: `crypto.randomUUID()` in `localStorage` — random token, not a fingerprint.
-
 ### Architecture
-- **Storage**: Vercel Postgres (Neon) — free tier 0.5GB, full SQL
+- **Storage**: Supabase (Postgres) — free tier
 - **Client**: New `src/analytics.ts` (~50 lines) — `trackEvent()` fire-and-forget
 - **Server**: New `api/event.js` (~80 lines) — ingests events, extracts geo, rate-limits 60/min/IP, returns 204
 - **Privacy**: Update modal to disclose anonymous stats collection, no PII, no IP stored
@@ -58,7 +56,6 @@ Anonymous device ID: `crypto.randomUUID()` in `localStorage` — random token, n
 CREATE TABLE events (
   id SERIAL PRIMARY KEY,
   type VARCHAR(30) NOT NULL,
-  device_id VARCHAR(36) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   duration_min SMALLINT,
   prep_time_sec SMALLINT,
