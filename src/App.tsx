@@ -176,6 +176,7 @@ export default function App() {
   const isRunningRef = useRef<boolean>(false);
   const secondsLeftRef = useRef<number>(0);
   const analyticsOpenFiredRef = useRef<boolean>(false);
+  const sessionIdRef = useRef<string | null>(null);
 
   // Camera (dev-only)
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -296,7 +297,7 @@ export default function App() {
       trackEvent("session_abandon", {
         durationMin: totalSecondsRef.current / 60,
         completionPct: Math.round((elapsed / totalSecondsRef.current) * 100),
-      });
+      }, sessionIdRef.current ?? undefined);
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
@@ -775,12 +776,13 @@ export default function App() {
     setSecondsLeft(startSeconds);
     setIsFinished(false);
     setIsRunning(true);
+    sessionIdRef.current = crypto.randomUUID();
     trackEvent("session_start", {
       durationMin: mins,
       prepTimeSec: waitSeconds,
       speechOn: speechEnabled,
       cameraOn: !!cameraStream,
-    });
+    }, sessionIdRef.current);
 
     lastSpokenRef.current = null;
     stopSpeech();
@@ -835,7 +837,7 @@ export default function App() {
             durationMin: totalSecondsRef.current / 60,
             completionPct: 100,
             speechOn: speechEnabledRef.current,
-          });
+          }, sessionIdRef.current ?? undefined);
           // Stop camera recording when timer finishes
           if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
@@ -933,7 +935,7 @@ export default function App() {
             durationMin: totalSecondsRef.current / 60,
             completionPct: 100,
             speechOn: speechEnabledRef.current,
-          });
+          }, sessionIdRef.current ?? undefined);
           // Stop camera recording when timer finishes
           if (mediaRecorderRef.current?.state === "recording") stopRecording();
           return 0;
@@ -967,7 +969,7 @@ export default function App() {
         durationMin: durationMinutes,
         completionPct: Math.round((elapsed / (durationMinutes * 60)) * 100),
         speechOn: speechEnabled,
-      });
+      }, sessionIdRef.current ?? undefined);
     }
     setIsFinished(false);
     setSecondsLeft(durationMinutes * 60);

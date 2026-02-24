@@ -51,7 +51,7 @@ export default async function handler(req, res) {
   }
 
   const body = parseJsonBody(req) || {};
-  const { type, durationMin, prepTimeSec, speechOn, cameraOn, completionPct } = body;
+  const { type, durationMin, prepTimeSec, speechOn, cameraOn, completionPct, runId, sessionId } = body;
 
   if (!type || typeof type !== "string") {
     return res.status(400).end();
@@ -82,6 +82,8 @@ export default async function handler(req, res) {
       camera_on:      cameraOn      != null ? Boolean(cameraOn)     : null,
       completion_pct: completionPct != null ? Number(completionPct) : null,
       city, region, country, platform, browser,
+      run_id:     typeof runId     === "string" ? runId.slice(0, 40)     : null,
+      session_id: typeof sessionId === "string" ? sessionId.slice(0, 40) : null,
     });
     if (error) throw error;
     console.log(JSON.stringify({ event: "analytics", type, country, platform, ts: Date.now() }));
