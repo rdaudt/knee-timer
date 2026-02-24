@@ -1,25 +1,28 @@
 # Knee Timer
 
-A motivational rehabilitation timer web app for knee recovery exercises. Provides encouraging audio coaching every 30 seconds during timed sessions, with milestone callouts and background music to keep you moving through your physio.
+A motivational rehabilitation timer web app for knee recovery exercises. Provides encouraging audio coaching every 30 seconds during timed sessions, with milestone callouts to keep you moving through your physio.
 
 **Live:** https://knee-timer.vercel.app
 
 ## Features
 
-- **Timed sessions** from 1-180 minutes
-- **Voice coaching** with OpenAI TTS - motivational messages every 30 seconds
+- **Timed sessions** from 1–15 minutes
+- **Voice coaching** with OpenAI TTS — motivational messages every 30 seconds
 - **Milestone callouts** at 25%, 50%, 75%, and 90% completion
 - **Background music** that automatically ducks during voice messages
-- **Personalization** - set your name and activity for custom encouragement
-- **Multiple voices** - choose from 5 OpenAI voices (Echo, Alloy, Fable, Onyx, Shimmer)
-- **Adjustable speed and volume** for voice coaching
+- **Static pre-generated audio** served from CDN for zero API cost on common phrases
+- **Access code gate** —  `ACCESS_CODE` env var to restrict access
+- **Anonymous analytics** — session events stored in Supabase (no PII collected)
+- **Privacy info** — accessible from the app footer
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- OpenAI API key
+- OpenAI API key (for TTS fallback / audio generation)
+- Supabase KEY
+- Vercel CLI (`npm i -g vercel`) for local API development
 
 ### Installation
 
@@ -31,10 +34,13 @@ npm install
 
 ### Configuration
 
-Copy `.env.example` to `.env.local` and add your OpenAI API key:
+Copy `.env.example` to `.env.local` and fill in values:
 
 ```
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=sk-...              # Required for TTS
+ACCESS_CODE=your-secret            # restricts app access
+SUPABASE_URL=https://...           # analytics backend
+SUPABASE_SERVICE_ROLE_KEY=eyJ...   # analytics backend
 ```
 
 ### Development
@@ -56,7 +62,8 @@ vercel --prod         # Deploy to Vercel
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
 - **Backend:** Vercel serverless functions
-- **TTS:** OpenAI TTS API (tts-1 model)
+- **TTS:** OpenAI TTS API (tts-1 model), static audio CDN fallback
+- **Analytics:** Supabase (anonymous session events)
 
 ## Commands
 
@@ -65,8 +72,15 @@ vercel --prod         # Deploy to Vercel
 | `npm run dev:vercel` | Local dev with API |
 | `npm run dev` | Frontend only |
 | `npm run build` | Production build |
-| `npm run test` | Run tests |
+| `npm run test` | Run vitest unit tests |
 | `npm run lint` | ESLint |
+
+## Architecture Notes
+
+- Static pre-generated audio lives in `public/audio/echo-1.00/` and is served from Vercel's CDN
+- The client tries static audio first, then falls back to `/api/tts`
+- After 3 consecutive TTS failures, speech is disabled and a muted banner is shown
+- Cache key format: `SHA256("voice|speed|text")` — shared between client and server
 
 ## License
 
