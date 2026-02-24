@@ -1389,7 +1389,7 @@ export default function App() {
               </p>
               <p>
                 This app is open source &mdash; you can inspect the code at{" "}
-                <a href="https://github.com/Carboteiro/knee-timer" target="_blank" rel="noopener noreferrer" className="text-warmgold hover:text-warmamber underline underline-offset-2">
+                <a href="https://github.com/rdaudt/knee-timer" target="_blank" rel="noopener noreferrer" className="text-warmgold hover:text-warmamber underline underline-offset-2">
                   GitHub
                 </a>.
               </p>
