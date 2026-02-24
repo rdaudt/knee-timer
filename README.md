@@ -11,6 +11,7 @@ A motivational rehabilitation timer web app for knee recovery exercises. Provide
 - **Milestone callouts** at 25%, 50%, 75%, and 90% completion
 - **Background music** that automatically ducks during voice messages
 - **Static pre-generated audio** served from CDN for zero API cost on common phrases
+- **Optional video recording** for user's review of form and improvements
 - **Access code gate** —  `ACCESS_CODE` env var to restrict access
 - **Anonymous analytics** — session events stored in Supabase (no PII collected)
 - **Privacy info** — accessible from the app footer

@@ -4,6 +4,11 @@ export default function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  if (process.env.ACCESS_CODE_GATE === "OFF") {
+    // Gate administratively disabled — allow anyone
+    return res.status(200).json({ ok: true });
+  }
+
   const ACCESS_CODE = process.env.ACCESS_CODE || "";
   if (!ACCESS_CODE) {
     // No access code configured — allow anyone

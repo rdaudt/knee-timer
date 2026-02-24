@@ -46,7 +46,8 @@ export default async function handler(req, res) {
   }
 
   const ACCESS_CODE = process.env.ACCESS_CODE || "";
-  if (ACCESS_CODE && req.headers["x-access-code"] !== ACCESS_CODE) {
+  const gateEnabled = process.env.ACCESS_CODE_GATE !== "OFF";
+  if (gateEnabled && ACCESS_CODE && req.headers["x-access-code"] !== ACCESS_CODE) {
     return res.status(401).end();
   }
 

@@ -134,6 +134,7 @@ export default function App() {
   const [waitSecondsLeft, setWaitSecondsLeft] = useState<number>(0);
 
   // Access code gate
+  const [gateEnabled, setGateEnabled] = useState<boolean | null>(null); // null = checking
   const [accessCode, setAccessCode] = useState<string>(() => localStorage.getItem(ACCESS_CODE_KEY) || "");
   const [accessCodeInput, setAccessCodeInput] = useState<string>("");
   const [accessCodeError, setAccessCodeError] = useState<string>("");
@@ -280,13 +281,22 @@ export default function App() {
     secondsLeftRef.current = secondsLeft;
   }, [secondsLeft]);
 
-  // Fire app_open once when the access gate is passed (covers returning users and fresh verifications)
+  // Check gate status from server on startup
   useEffect(() => {
-    if (accessCode && !analyticsOpenFiredRef.current) {
+    fetch("/api/health")
+      .then((r) => r.json())
+      .then((data) => setGateEnabled(data.gateEnabled ?? true))
+      .catch(() => setGateEnabled(true)); // fail-safe: assume gate ON
+  }, []);
+
+  // Fire app_open once when the access gate is passed (covers returning users, fresh verifications, and gate-off mode)
+  useEffect(() => {
+    const hasAccess = gateEnabled === false || Boolean(accessCode);
+    if (hasAccess && !analyticsOpenFiredRef.current) {
       analyticsOpenFiredRef.current = true;
       trackEvent("app_open");
     }
-  }, [accessCode]);
+  }, [accessCode, gateEnabled]);
 
   // session_abandon on tab/browser close while timer is running
   useEffect(() => {
@@ -1026,8 +1036,15 @@ export default function App() {
       .finally(() => setAccessCodeLoading(false));
   }
 
-  // Access code gate — show code entry screen if no code stored
-  if (!accessCode) {
+  // While checking gate status, show a blank loading screen to avoid a flash of the gate UI
+  if (gateEnabled === null) {
+    return (
+      <div className="min-h-screen bg-warm-gradient grain-overlay" />
+    );
+  }
+
+  // Access code gate — show code entry screen if gate is on and no code stored
+  if (gateEnabled && !accessCode) {
     return (
       <div className="min-h-screen bg-warm-gradient grain-overlay font-[family-name:var(--font-body)] text-warmtext flex flex-col items-center justify-center p-4 selection:bg-warmgold/30">
         <div className="relative z-10 w-full max-w-md">

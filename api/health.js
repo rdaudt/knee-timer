@@ -4,5 +4,6 @@ export default function handler(_req, res) {
     ok: true,
     provider: "openai",
     hasKey: Boolean(process.env.OPENAI_API_KEY),
+    gateEnabled: process.env.ACCESS_CODE_GATE !== "OFF",
   });
 }
