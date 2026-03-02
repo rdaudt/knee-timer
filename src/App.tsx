@@ -1025,6 +1025,7 @@ export default function App() {
       .then((res) => {
         if (res.ok) {
           localStorage.setItem(ACCESS_CODE_KEY, code);
+          trackEvent("new_user");
           setAccessCode(code);
         } else {
           setAccessCodeError("Invalid access code. Please try again.");
