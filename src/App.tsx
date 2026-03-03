@@ -145,6 +145,15 @@ export default function App() {
   // Privacy modal
   const [showPrivacy, setShowPrivacy] = useState<boolean>(false);
 
+  // Feedback modal
+  const [showFeedback, setShowFeedback]             = useState<boolean>(false);
+  const [feedbackRating, setFeedbackRating]         = useState<number>(0);
+  const [feedbackHover, setFeedbackHover]           = useState<number>(0);
+  const [feedbackComment, setFeedbackComment]       = useState<string>("");
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState<boolean>(false);
+  const [feedbackDone, setFeedbackDone]             = useState<boolean>(false);
+  const [feedbackError, setFeedbackError]           = useState<boolean>(false);
+
   // Personalization (kept internally, not exposed in UI)
   const [activity] = useState<string>("physio");
 
@@ -1396,12 +1405,20 @@ export default function App() {
             If your session is extremely painful or worsening, follow your clinician's guidance.
             This timer is for encouragement, not medical advice.
           </p>
-          <button
-            className="mt-3 text-xs text-warmmuted/50 hover:text-warmmuted/80 transition-colors underline underline-offset-2"
-            onClick={() => setShowPrivacy(true)}
-          >
-            Privacy
-          </button>
+          <div className="mt-3 flex justify-center gap-4">
+            <button
+              className="text-xs text-warmmuted/50 hover:text-warmmuted/80 transition-colors underline underline-offset-2"
+              onClick={() => setShowPrivacy(true)}
+            >
+              Privacy
+            </button>
+            <button
+              className="text-xs text-warmmuted/50 hover:text-warmmuted/80 transition-colors underline underline-offset-2"
+              onClick={() => setShowFeedback(true)}
+            >
+              Feedback
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1430,6 +1447,104 @@ export default function App() {
             <button className="btn-secondary w-full mt-5" onClick={() => setShowPrivacy(false)}>
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Feedback Modal ---- */}
+      {showFeedback && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          onClick={() => { setShowFeedback(false); setFeedbackRating(0); setFeedbackHover(0); setFeedbackComment(""); setFeedbackSubmitting(false); setFeedbackDone(false); setFeedbackError(false); }}
+        >
+          <div className="panel-warm w-full max-w-md p-6 sm:p-8 animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-[family-name:var(--font-display)] text-xl text-warmcream mb-5">How are we doing?</h2>
+
+            {feedbackDone ? (
+              <p className="text-center text-warmcream py-6">Thank you for your feedback! ♥</p>
+            ) : (
+              <>
+                {/* Stars */}
+                <div className="flex gap-2 mb-4" onMouseLeave={() => setFeedbackHover(0)}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      className={`text-3xl transition-colors cursor-pointer ${star <= (feedbackHover || feedbackRating) ? "text-warmgold" : "text-warmmuted/30"}`}
+                      onMouseEnter={() => setFeedbackHover(star)}
+                      onClick={() => setFeedbackRating(star)}
+                      aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                {/* Comment */}
+                <textarea
+                  className="input-warm w-full resize-none text-sm"
+                  rows={4}
+                  maxLength={1000}
+                  placeholder="Tell us more (optional)"
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                />
+
+                {/* Validation message */}
+                {feedbackComment.trim() && !feedbackRating && (
+                  <p className="text-warmred text-xs mt-2">Please select a star rating to go with your comment.</p>
+                )}
+
+                {/* Error message */}
+                {feedbackError && (
+                  <p className="text-warmred text-xs mt-2">Something went wrong. Please try again.</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-5">
+                  <button
+                    className="btn-primary flex-1"
+                    disabled={feedbackRating === 0 || feedbackSubmitting}
+                    onClick={async () => {
+                      setFeedbackSubmitting(true);
+                      setFeedbackError(false);
+                      const accessCode = localStorage.getItem(ACCESS_CODE_KEY) ?? "";
+                      const body: { rating?: number; comment?: string } = { rating: feedbackRating };
+                      const trimmed = feedbackComment.trim();
+                      if (trimmed) body.comment = trimmed;
+                      try {
+                        const res = await fetch("/api/feedback", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", "x-access-code": accessCode },
+                          body: JSON.stringify(body),
+                        });
+                        if (!res.ok) throw new Error();
+                        setFeedbackDone(true);
+                        setTimeout(() => {
+                          setShowFeedback(false);
+                          setFeedbackRating(0);
+                          setFeedbackHover(0);
+                          setFeedbackComment("");
+                          setFeedbackSubmitting(false);
+                          setFeedbackDone(false);
+                          setFeedbackError(false);
+                        }, 2000);
+                      } catch {
+                        setFeedbackError(true);
+                        setFeedbackSubmitting(false);
+                      }
+                    }}
+                  >
+                    {feedbackSubmitting ? "Sending…" : "Submit"}
+                  </button>
+                  <button
+                    className="btn-secondary flex-1"
+                    onClick={() => { setShowFeedback(false); setFeedbackRating(0); setFeedbackHover(0); setFeedbackComment(""); setFeedbackSubmitting(false); setFeedbackDone(false); setFeedbackError(false); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
