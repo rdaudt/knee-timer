@@ -281,11 +281,26 @@ export default function App() {
     secondsLeftRef.current = secondsLeft;
   }, [secondsLeft]);
 
-  // Check gate status from server on startup
+  // Check gate status from server on startup.
+  // If a code is already stored, re-validate it in parallel — changing ACCESS_CODE
+  // on the server must revoke previously stored codes immediately.
   useEffect(() => {
-    fetch("/api/health")
-      .then((r) => r.json())
-      .then((data) => setGateEnabled(data.gateEnabled ?? true))
+    const storedCode = localStorage.getItem(ACCESS_CODE_KEY) || "";
+    const healthPromise = fetch("/api/health").then((r) => r.json());
+    const verifyPromise = storedCode
+      ? fetch("/api/verify-code", { method: "POST", headers: { "x-access-code": storedCode } })
+      : Promise.resolve(null);
+
+    Promise.all([healthPromise, verifyPromise])
+      .then(([healthData, verifyRes]) => {
+        const gateOn = healthData.gateEnabled ?? true;
+        if (gateOn && storedCode && verifyRes && !verifyRes.ok) {
+          // Stored code rejected by server — revoke it and show the gate
+          localStorage.removeItem(ACCESS_CODE_KEY);
+          setAccessCode("");
+        }
+        setGateEnabled(gateOn);
+      })
       .catch(() => setGateEnabled(true)); // fail-safe: assume gate ON
   }, []);
 
