@@ -1458,7 +1458,7 @@ export default function App() {
           onClick={() => { setShowFeedback(false); setFeedbackRating(0); setFeedbackHover(0); setFeedbackComment(""); setFeedbackSubmitting(false); setFeedbackDone(false); setFeedbackError(false); }}
         >
           <div className="panel-warm w-full max-w-md p-6 sm:p-8 animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-[family-name:var(--font-display)] text-xl text-warmcream mb-5">How are we doing?</h2>
+            <h2 className="font-[family-name:var(--font-display)] text-xl text-warmcream mb-5">Does it help?</h2>
 
             {feedbackDone ? (
               <p className="text-center text-warmcream py-6">Thank you for your feedback! ♥</p>
